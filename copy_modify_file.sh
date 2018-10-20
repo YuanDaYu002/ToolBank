@@ -3,19 +3,20 @@
 SOURCE_PATH=.     
 DEST_PATH=/home/yuanda.yu/svn_debug/lite-ipc/trunk/retarded/app
 
-h_c_to_hh_cc=1  #just use  at vmware_share 
+h_c_to_hh_cc=0  #just use  at vmware_share 
 
-hh_cc_to_h_c=0  #vmware_share(windows) to  svn_debug(linux)  
+hh_cc_to_h_c=1  #vmware_share(windows) to  svn_debug(linux)  
 
 echo SOURCE_PATH = $SOURCE_PATH
 echo DEST_PATH = $DEST_PATH
 
 
-######将 .h  .c文件转换成  .hh  .cc文件################################
-if [ $h_c_to_hh_cc ]
+######将 .h  .c .cpp 文件转换成  .hh  .cc .cppp文件################################
+if test $[h_c_to_hh_cc] -eq 1 
 then
 	c_file=`find $SOURCE_PATH -name *.c`
 	h_file=`find $SOURCE_PATH -name *.h`
+	cpp_file=`find $SOURCE_PATH -name *.cpp`
 
 	for file in $c_file		# .c  --->  .cc
 	do
@@ -36,12 +37,22 @@ then
 		echo "mv $file $new_file" 
 
 	done
+
+	for file in $cpp_file    #.cpp ---> .cppp
+	do
+		new_file=${file%.*}		#%.* 表示从右边开始，删除第一个 . 号及右边的字符
+		new_file=${new_file}.cppp
+		#echo $new_file
+		mv $file $new_file 
+		echo "mv $file $new_file" 
+	done
+
 fi
 #####################################################################
 
 
-######将 .hh  .c文件拷贝到指定目录下并转换成  .h  .c文件####################
-if [ $hh_cc_to_h_c ]
+######将 .hh  .c .cppp文件拷贝到指定目录下并转换成  .h  .c  .cpp文件####################
+if test $[hh_cc_to_h_c] -eq 1 
 then
 	#拷贝
 	rm -rf $DEST_PATH/*
@@ -51,8 +62,9 @@ then
 	#转换
 	cc_file=`find $DEST_PATH -name *.cc`
 	hh_file=`find $DEST_PATH -name *.hh`
+	cppp_file=`find $DEST_PATH -name *.cppp`
 
-	for file in $cc_file		# .c  --->  .cc
+	for file in $cc_file		# .cc  --->  .c
 	do
 		new_file=${file%.*}		#%.* 表示从右边开始，删除第一个 . 号及右边的字符
 		new_file=${new_file}.c
@@ -62,10 +74,20 @@ then
 
 	done
 
-	for file in $hh_file		# .h  --->  .hh
+	for file in $hh_file		# .hh  --->  .h
 	do
 		new_file=${file%.*}		#%.* 表示从右边开始，删除第一个 . 号及右边的字符
 		new_file=${new_file}.h
+		#echo $new_file
+		mv $file $new_file 
+		echo "mv $file $new_file" 
+
+	done
+
+	for file in $cppp_file		# .cppp  --->  .cpp
+	do
+		new_file=${file%.*}		#%.* 表示从右边开始，删除第一个 . 号及右边的字符
+		new_file=${new_file}.cpp
 		#echo $new_file
 		mv $file $new_file 
 		echo "mv $file $new_file" 
