@@ -5,8 +5,6 @@
 #include <netdb.h> //hostent 
 #include <arpa/inet.h> 
 #include <string.h>
-#include <stdlib.h>
-
 //#include "hle_url_prase.h"
 
 
@@ -61,8 +59,7 @@ int url_prase(const char*url,url_info_t*url_info_ret)
     char *parseptr2;
     int len;
     int i;
-  
- 
+    
     /*************解析协议*********************************/
     parseptr2 = strdup(url);
     char *free_pst = parseptr2;
@@ -73,8 +70,7 @@ int url_prase(const char*url,url_info_t*url_info_ret)
         free(parseptr2);
         return -1;
     }
-  
-
+    
     len = parseptr1 - parseptr2; //地址做差，得出 “ ：”之前字符串长度（字节数），即协议的长度
     for ( i = 0; i < len; i++ ) 
     {
@@ -89,11 +85,10 @@ int url_prase(const char*url,url_info_t*url_info_ret)
     for(i=0;i<len;i++)
         printf("%c",parseptr2[i]);
     */
-    url_info_ret->protocol = (char*)calloc(len,sizeof(char));
+    url_info_ret->protocol = (char*)calloc(len+1,sizeof(char));
     strncpy(url_info_ret->protocol,parseptr2,len);
     //url_info_ret->protocol = strndup(parseptr2,len); 
     
-
     /*************解析host*********************************/
     printf("\n");
     parseptr1++; //指向 “ ：”的下一个字符，跳过“//”
@@ -129,7 +124,7 @@ int url_prase(const char*url,url_info_t*url_info_ret)
         */
         //url_info_ret->host = strndup(parseptr2,len);
 
-        url_info_ret->host = (char*)calloc(len,sizeof(char));
+        url_info_ret->host = (char*)calloc(len+1,sizeof(char));
         strncpy(url_info_ret->host,parseptr2,len);
     }
     else//有端口号
@@ -142,7 +137,7 @@ int url_prase(const char*url,url_info_t*url_info_ret)
         printf("\n");
         */
        // url_info_ret->host = strndup(parseptr2,len);
-        url_info_ret->host = (char*)calloc(len,sizeof(char));
+        url_info_ret->host = (char*)calloc(len+1,sizeof(char));
         strncpy(url_info_ret->host,parseptr2,len);
         
         /*************解析port*********************************/
@@ -165,10 +160,9 @@ int url_prase(const char*url,url_info_t*url_info_ret)
         printf("\n");//解析端口
         */
         //url_info_ret->port = strndup(parseptr2,len);
-        url_info_ret->port = (char*)calloc(len,sizeof(char));
+        url_info_ret->port = (char*)calloc(len+1,sizeof(char));
         strncpy(url_info_ret->port,parseptr2,len);
     }
-
 
     /*************解析path*********************************/
     parseptr1++; //跳过端口后边的“/”
@@ -186,10 +180,9 @@ int url_prase(const char*url,url_info_t*url_info_ret)
     printf("\n");//解析路径
     */
     //url_info_ret->path = strndup(parseptr2,len);
-    url_info_ret->path = (char*)calloc(len,sizeof(char));
+    url_info_ret->path = (char*)calloc(len+1,sizeof(char));
     strncpy(url_info_ret->path,parseptr2,len);
-  
-
+    
     /*************解析query*********************************/
     parseptr2=parseptr1;
     if ( '?' == *parseptr1 ) 
@@ -208,10 +201,10 @@ int url_prase(const char*url,url_info_t*url_info_ret)
         printf("\n");
         */
         //url_info_ret->query = strndup(parseptr2,len);
-        url_info_ret->query = (char*)calloc(len,sizeof(char));
+        url_info_ret->query = (char*)calloc(len+1,sizeof(char));
         strncpy(url_info_ret->query,parseptr2,len);
     }
-   
+    
     /*************解析fragment*********************************/
     parseptr2=parseptr1;
     if ( '#' == *parseptr1 ) 
@@ -230,13 +223,11 @@ int url_prase(const char*url,url_info_t*url_info_ret)
         printf("\n");//判断有无片段并解析
         */
         //url_info_ret->fragment = strndup(parseptr2,len);
-        url_info_ret->fragment = (char*)calloc(len,sizeof(char));
+        url_info_ret->fragment = (char*)calloc(len+1,sizeof(char));
         strncpy(url_info_ret->fragment,parseptr2,len);
     }
-
-
+    
     free(free_pst);//释放备份url
-
     return 0;
 }
 
@@ -256,7 +247,7 @@ int hostname_to_ip(char * hostname , char* ip)
     struct hostent *he; 
     struct in_addr **addr_list; 
     int i; 
-  
+    printf("hostname_to_ip:hostname = %s\n",hostname);  
     if ( (he = gethostbyname( hostname ) ) == NULL)  
     { 
         // get the host info 
@@ -297,7 +288,7 @@ int hle_url_to_ip_port(char * url,char*ip,char*port)
     if(ret < 0)
         perror("url_prase failed!\n");
 
-#if 1
+
     hostname_to_ip(url_info_ret.host,ip);
 
     if(url_info_ret.port != NULL)
@@ -305,35 +296,10 @@ int hle_url_to_ip_port(char * url,char*ip,char*port)
         strcpy(port,url_info_ret.port);
     }
 
-    printf("the url = %s \n",url);
-
-    printf("protocol = %s\n",url_info_ret.protocol);
-    printf("host = %s\n",url_info_ret.host);
-    printf("port = %s\n",url_info_ret.port);
-    printf("path = %s\n",url_info_ret.path);
-    printf("query = %s\n",url_info_ret.query);
-    printf("fragment = %s\n",url_info_ret.fragment);
+    printf("the url = %s \nprase ip = %s\n",url,ip);
 
     strcpy(hle_ip,ip);
     strcpy(hle_port,port);
-#endif
-
-
-    return 0;
-
-}
-
-
-int main (int argc,char**argv)
-{
-
-    char *url = "http://www.baidu.com/index.html";
-    //printf("argv[0] = %s\n",argv[0]);
-    char ip [20] = {0};
-    char port[10] = {0};
-    hle_url_to_ip_port(url,ip,port);
-
-
 
     return 0;
 
