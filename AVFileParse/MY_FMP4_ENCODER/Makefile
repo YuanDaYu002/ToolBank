@@ -1,5 +1,5 @@
 
-TARGET=fmp4Encode.a
+TARGET=libfmp4Encode.a
 CC=arm-himix100-linux-gcc
 
 

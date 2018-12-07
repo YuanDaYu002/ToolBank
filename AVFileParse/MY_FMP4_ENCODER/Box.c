@@ -10,6 +10,9 @@
 #include "Box.h"
 #include "typeport.h"
 
+avcc_box_info_t avcc_box_info = {0}; //主要外部传入sps/pps nalu 包来初始化
+
+
 
 //大小端互相转换,传入大端返回小端，传入小端返回大端
 int switch_small_BigEndian(int num)
@@ -1079,6 +1082,7 @@ avcc_box_info_t *	avcc_box_init(unsigned char* naluData, int naluSize)
 	return &avcc_box_info;
 	
 }
+
 
 
 

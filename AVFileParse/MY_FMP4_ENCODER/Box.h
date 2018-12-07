@@ -1,3 +1,4 @@
+
 #ifndef _BOX_H
 #define _BOX_H
 
@@ -465,7 +466,7 @@ typedef struct _avcc_box_info_t
 	unsigned int 	buf_length;
 
 }avcc_box_info_t;
-avcc_box_info_t avcc_box_info = {0}; //主要外部传入sps/pps nalu 包来初始化
+
 
 
 
@@ -732,3 +733,4 @@ avcc_box_info_t *	avcc_box_init(unsigned char* naluData, int naluSize);
 
 
 #endif
+
