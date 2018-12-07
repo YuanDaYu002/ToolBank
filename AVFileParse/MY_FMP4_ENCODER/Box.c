@@ -2,13 +2,12 @@
 
 #include <string.h>
 #include <sys/time.h>
-#include <arpa/inet.h>
 #include <stdlib.h>
-
-
 
 #include "Box.h"
 #include "typeport.h"
+#include "my_inet.h"
+
 
 avcc_box_info_t avcc_box_info = {0}; //主要外部传入sps/pps nalu 包来初始化
 
@@ -49,7 +48,7 @@ ftyp_box * ftyp_box_init()
 	
 	memset(ftpy_item,0,box_size);
 	
-	ftpy_item->header.size = htonl(box_size);
+	ftpy_item->header.size = t_htonl(box_size);
 	//strncpy(ftpy_item->header->type,"ftpy",4);
 	strncpy(ftpy_item->header.type,"yptf",4);//大端模式存储
 	
@@ -65,7 +64,7 @@ moov_box* moov_box_init(unsigned int box_length)
 	if(NULL == moov_item)
 		return NULL;
 	memset(moov_item,0,box_length);
-	moov_item->header.size = htonl(box_length);//上层调用增加child box后再及时修正
+	moov_item->header.size = t_htonl(box_length);//上层调用增加child box后再及时修正
 	strncpy(moov_item->header.type,"voom",4);//大端模式存储
 
 	return moov_item;
@@ -78,7 +77,7 @@ moof_box* moof_box_init(unsigned int box_length)
 	if(NULL == moof_item)
 		return NULL;
 	memset(moof_item,0,box_length);
-	moof_item->header.size = htonl(box_length);//上层调用增加child box后再及时修正
+	moof_item->header.size = t_htonl(box_length);//上层调用增加child box后再及时修正
 	strncpy(moof_item->header.type,"foom",4);//大端模式存储
 
 	return moof_item;
@@ -90,7 +89,7 @@ mdat_box* mdat_box_init(unsigned int box_length)
 	if(NULL == mdat_item)
 		return NULL;
 	memset(mdat_item,0,box_length);
-	mdat_item->header.size = htonl(box_length);//上层调用增加child box后再及时修正
+	mdat_item->header.size = t_htonl(box_length);//上层调用增加child box后再及时修正
 	strncpy(mdat_item->header.type,"tadm",4);//大端模式存储
 
 	return mdat_item;
@@ -109,13 +108,13 @@ mvhd_box* mvhd_box_init(unsigned int timescale,unsigned int duration)
 		return NULL;
 	memset(mvhd_item,0,sizeof(mvhd_box));
 
-	mvhd_item->header.size = htonl(sizeof(mvhd_box));
+	mvhd_item->header.size = t_htonl(sizeof(mvhd_box));
 	strncpy(mvhd_item->header.type,"dhvm",4);//大端模式存储
 	mvhd_item->header.version = 0;
 
 	/*struct timeval buf;
 	gettimeofday(&buf,NULL);
-	mvhd_item->creation_time = htonl(buf.tv_sec);
+	mvhd_item->creation_time = t_htonl(buf.tv_sec);
 	*/
 
 	unsigned char MVHD[] = {
@@ -165,7 +164,7 @@ trak_box* trak_box_init(unsigned int box_length)
 		return NULL;
 	memset(track_item,0,box_length);
 
-	track_item->header.size = htonl(box_length);
+	track_item->header.size = t_htonl(box_length);
 	strncpy(track_item->header.type,"kart",4);//大端模式存储
 	return track_item;
 }
@@ -176,7 +175,7 @@ mvex_box*	mvex_box_init(unsigned int box_length)
 	if(NULL == mvex_item)
 		return NULL;
 	memset(mvex_item,0,box_length);
-	mvex_item->header.size  = htonl(box_length);
+	mvex_item->header.size  = t_htonl(box_length);
 	strncpy(mvex_item->header.type,"xevm",4);//大端模式存储
 	mvex_item->header.version = 0;
 
@@ -190,7 +189,7 @@ mfhd_box* mfhd_box_init()
 	if(NULL == mfhd_item)
 		return NULL;
 	memset(mfhd_item,0,sizeof(mfhd_box));
-	mfhd_item->header.size  = htonl(sizeof(mfhd_box));
+	mfhd_item->header.size  = t_htonl(sizeof(mfhd_box));
 	strncpy(mfhd_item->header.type,"dhfm",4);//大端模式存储
 	mfhd_item->header.version = 0;
 
@@ -203,7 +202,7 @@ traf_box*	traf_box_init(unsigned int box_length)
 	if(NULL == traf_item)
 		return NULL;
 	memset(traf_item,0,box_length);
-	traf_item->header.size  = htonl(box_length);
+	traf_item->header.size  = t_htonl(box_length);
 	strncpy(traf_item->header.type,"fart",4);//大端模式存储
 
 
@@ -217,7 +216,7 @@ tkhd_box* tkhd_box_init(unsigned int trackId,unsigned int duration,unsigned int 
 	tkhd_box *tkhd_item = (tkhd_box*)malloc(sizeof(tkhd_box));
 	if(NULL == tkhd_item)
 		return NULL;
-	tkhd_item->header.size = htonl(sizeof(tkhd_box));
+	tkhd_item->header.size = t_htonl(sizeof(tkhd_box));
 	strncpy(tkhd_item->header.type,"dhkt",4);//大端模式存储
 	
 	//tkhd_item->header->version = 0;//放到下边的数组了
@@ -272,7 +271,7 @@ mdia_box* mdia_box_init(unsigned int box_length)
 		return NULL;
 	memset(mdia_item,0,box_length);
 
-	mdia_item->header.size = htonl(box_length);
+	mdia_item->header.size = t_htonl(box_length);
 	strncpy(mdia_item->header.type ,"aidm",4);//大端模式存储
 	
 	return mdia_item;
@@ -286,7 +285,7 @@ trex_box*	trex_box_init(unsigned int trackId)
 		return NULL;
 	memset(trex_item,0,sizeof(trex_box));
 
-	trex_item->header.size = htonl(sizeof(trex_box));
+	trex_item->header.size = t_htonl(sizeof(trex_box));
 	strncpy(trex_item->header.type,"xert",4);//大端模式存储
 	
 	
@@ -313,7 +312,7 @@ tfhd_box*	tfhd_box_init(unsigned int trackId)
 	if(NULL == tfhd_item)
 		return NULL;
 	memset(tfhd_item,0,sizeof(tfhd_box));
-	tfhd_item->header.size = htonl(sizeof(tfhd_box));
+	tfhd_item->header.size = t_htonl(sizeof(tfhd_box));
 	strncpy(tfhd_item->header.type,"dhft",4);//大端模式存储
 
     const unsigned char TFHD[] = {
@@ -337,7 +336,7 @@ tfdt_box*	tfdt_box_init(int baseMediaDecodeTime)
 		return NULL;
 	memset(tfdt_item,0,sizeof(tfdt_box));
 
-	tfdt_item->header.size = htonl(sizeof(tfdt_box));
+	tfdt_item->header.size = t_htonl(sizeof(tfdt_box));
 	strncpy(tfdt_item->header.type,"tdft",4);//大端模式存储
 
     const unsigned char TFDT[] = {
@@ -362,7 +361,7 @@ sdtp_box*	sdtp_box_init()
 	
 	memset(sdtp_item,0,sizeof(sdtp_item));
 
-	sdtp_item->header.size = htonl(sizeof(sdtp_box));
+	sdtp_item->header.size = t_htonl(sizeof(sdtp_box));
 	strncpy(sdtp_item->header.type,"ptds",4);//大端模式存储
 
 	//先不实现，好像没有也没事
@@ -376,7 +375,7 @@ trun_box*	trun_box_init()
 		return NULL;
 
 	memset(trun_item,0,sizeof(trun_box));
-	trun_item->header.size = htonl(sizeof(trun_box)); 
+	trun_item->header.size = t_htonl(sizeof(trun_box)); 
 	strncpy(trun_item->header.type,"nurt",4);//大端模式存储
 
 	trun_item->sample_count = 0;
@@ -396,7 +395,7 @@ mdhd_box* mdhd_box_init(unsigned int timescale,unsigned int duration)
 
 	memset(mdhd_item,0,sizeof(mdhd_item));
 
-	mdhd_item->header.size = htonl(sizeof(mdhd_box));
+	mdhd_item->header.size = t_htonl(sizeof(mdhd_box));
 	strncpy(mdhd_item->header.type,"dhdm",4);//大端模式存储
 
 	unsigned char MDHD[] = {
@@ -441,7 +440,7 @@ hdlr_box*	hdlr_box_init()
 		return NULL;
 	memset(hdlr_item,0,sizeof(box_length));
 
-	hdlr_item->header.size = htonl(box_length);
+	hdlr_item->header.size = t_htonl(box_length);
 	strncpy(hdlr_item->header.type,"rldh",4);//大端模式存储
 
 	return hdlr_item;
@@ -456,7 +455,7 @@ minf_box*	minf_box_init(unsigned int box_length)
 
 	memset(minf_item,0,box_length);
 
-	minf_item->header.size = htonl(box_length);
+	minf_item->header.size = t_htonl(box_length);
 	strncpy(minf_item->header.type,"fnim",4);//大端模式存储
 	
 	return minf_item;
@@ -472,7 +471,7 @@ vmhd_box* vmhd_box_init()
 
 	memset(vmhd_item,0,sizeof(vmhd_box));
 	
-	vmhd_item->header.size = htonl(sizeof(vmhd_box));
+	vmhd_item->header.size = t_htonl(sizeof(vmhd_box));
 	strncpy(vmhd_item->header.type,"dhmv",4);//大端模式存储
 
 	unsigned char VMHD[] = {
@@ -495,7 +494,7 @@ smhd_box*	smhd_box_init()
 		return NULL;
 	memset(smhd_item,0,sizeof(smhd_box));
 
-	smhd_item->header.size = htonl(sizeof(smhd_box));
+	smhd_item->header.size = t_htonl(sizeof(smhd_box));
 	strncpy(smhd_item->header.type,"dhms",4);//大端模式存储
 
 	unsigned char SMHD[] = {
@@ -518,7 +517,7 @@ dinf_box* dinf_box_init(unsigned int box_length)
 
 	memset(dinf_item,0,box_length);
 
-	dinf_item->header.size = htonl(box_length);
+	dinf_item->header.size = t_htonl(box_length);
 	strncpy(dinf_item->header.type,"fnid",4);//大端模式存储
 
 	return dinf_item;
@@ -532,7 +531,7 @@ stbl_box*	stbl_box_init(unsigned int box_length)
 		return NULL;
 
 	memset(stbl_item,0,box_length);
-	stbl_item->header.size = htonl(box_length);
+	stbl_item->header.size = t_htonl(box_length);
 	strncpy(stbl_item->header.type,"lbts",4);//大端模式存储
 
 	return stbl_item;
@@ -556,7 +555,7 @@ dref_box* dref_box_init()
 		return NULL;
 	memset(dref_item,0,box_length);
 
-	dref_item->header.size = htonl(box_length);
+	dref_item->header.size = t_htonl(box_length);
 	strncpy(dref_item->header.type,"ferd",4);//大端模式存储
 
 	memcpy(&dref_item->header.version,DREF,sizeof(DREF));
@@ -601,7 +600,7 @@ stsd_box*  AudioSampleEntry(unsigned char channelCount,unsigned short sampleRate
 		return NULL;
 	
 	memset(mp4a_item ,0,sizeof(AudioSampleEntry_t));
-	mp4a_item->sample_entry.header.size = htonl(sizeof(AudioSampleEntry_t));
+	mp4a_item->sample_entry.header.size = t_htonl(sizeof(AudioSampleEntry_t));
 	strncpy(mp4a_item->sample_entry.header.type,"a4pm",4);//大端模式存储
 
 	memcpy(&mp4a_item->sample_entry.reserved  ,mp4a,sizeof(mp4a));
@@ -667,7 +666,7 @@ stsd_box*  AudioSampleEntry(unsigned char channelCount,unsigned short sampleRate
 	}
 		
 	memset(esds_item,0,sizeof(esds_box));
-	esds_item->header.size = htonl(sizeof(esds_box));
+	esds_item->header.size = t_htonl(sizeof(esds_box));
 	strncpy(esds_item->header.type,"sdse",4);//大端模式存储
 	memcpy(&esds_item->header.version,esds,sizeof(esds));
 
@@ -684,7 +683,7 @@ stsd_box*  AudioSampleEntry(unsigned char channelCount,unsigned short sampleRate
 	memcpy(stsd_item->Sample,mp4a_item,sizeof(AudioSampleEntry_t));
 	memcpy(stsd_item->Sample + sizeof(AudioSampleEntry_t),esds_item,sizeof(esds_box));
 	//修正 stsd box长度
-	stsd_item->header.size = htonl(stsd_box_size);
+	stsd_item->header.size = t_htonl(stsd_box_size);
 
 	
 	free(esds_item);
@@ -746,7 +745,7 @@ stsd_box* VideoSampleEntry(unsigned short width,unsigned short height)
 	memset(stsd_item,0,box_length);
 
 	//填充stsd 
-	stsd_item->header.size = htonl(box_length);
+	stsd_item->header.size = t_htonl(box_length);
 	strncpy(stsd_item->header.type,"dsts",4);
 
 	//偏移到avc1的位置
@@ -755,7 +754,7 @@ stsd_box* VideoSampleEntry(unsigned short width,unsigned short height)
 	box_length = sizeof(VideoSampleEntry_t);
 	
 	//填充avc1的头部
-	avc1_item->sample_entry.header.size = htonl(box_length);
+	avc1_item->sample_entry.header.size = t_htonl(box_length);
 	strncpy(avc1_item->sample_entry.header.type,"1cva",4);
 
 	//填充AVC1 body部分
@@ -815,7 +814,7 @@ stts_box*	stts_box_init(void)
 		return NULL;
 	}
 	memset(stts_item,0,box_length);
-	stts_item->header.size = htonl(box_length);
+	stts_item->header.size = t_htonl(box_length);
 	strncpy(stts_item->header.type,"stts",4);
 	memcpy(&stts_item->header.version,STTS,sizeof(STTS));
 
@@ -853,7 +852,7 @@ stsz_box* stsz_box_init(void)
 		return NULL;
 	}
 	memset(stsz_item,0,box_length);
-	stsz_item->header.size = htonl(box_length);
+	stsz_item->header.size = t_htonl(box_length);
 	strncpy(stsz_item->header.type,"zsts",4);
 	memcpy(&stsz_item->header.version,STSZ,sizeof(STSZ));
 
@@ -934,7 +933,7 @@ avcc_box_info_t *	avcc_box_init(unsigned char* naluData, int naluSize)
 	
 	//一般就一个sps
 		unsigned short sps_len = (unsigned short)naluData[offset];
-		unsigned short sequenceParameterSetLength = htons(sps_len);  // sequenceParameterSetLength
+		unsigned short sequenceParameterSetLength = t_htons(sps_len);  // sequenceParameterSetLength
         offset += 2;
 
         // Notice: Nalu without startcode header (00 00 00 01)
@@ -1027,7 +1026,7 @@ avcc_box_info_t *	avcc_box_init(unsigned char* naluData, int naluSize)
 
 		//一般也就1个pps
         unsigned int pps_len = (unsigned short)naluData[offset]; 
-		unsigned short pictureParameterSetLength = htons(pps_len); // pictureParameterSetLength
+		unsigned short pictureParameterSetLength = t_htons(pps_len); // pictureParameterSetLength
         offset += 2;
 
 		if(pps_len <= 0)
@@ -1060,7 +1059,7 @@ avcc_box_info_t *	avcc_box_init(unsigned char* naluData, int naluSize)
 		}
 		memset(avcc_item,0,box_len);
 
-		avcc_item->header.size = htonl(box_len);
+		avcc_item->header.size = t_htonl(box_len);
 		strncpy(avcc_item->header.type,"Ccva",4);
 		memcpy(&avcc_item->configurationVersion,&configurationVersion,sizeof(configurationVersion));
 		memcpy(&avcc_item->AVCProfileIndication,&AVCProfileIndication,sizeof(AVCProfileIndication));
@@ -1082,6 +1081,7 @@ avcc_box_info_t *	avcc_box_init(unsigned char* naluData, int naluSize)
 	return &avcc_box_info;
 	
 }
+
 
 
 

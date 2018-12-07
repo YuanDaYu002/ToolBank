@@ -1,10 +1,14 @@
+
+
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <pthread.h>
-#include <arpa/inet.h>
+
+#include "my_inet.h"
+
 #include <stdlib.h>
 #include <string.h>
 
@@ -627,11 +631,11 @@ void * remuxVideoAudio(void *args)
 			fmp4BOX.mdatBox->header.size += buf_remux_video.write_pos - buf_remux_video.remux_video_buf;
 
 			//转化成大端格式：
-			fmp4BOX.traf_video->trunBox->header.size = htonl(fmp4BOX.traf_video->trunBox->header.size);
-			fmp4BOX.traf_video->trafBox->header.size = htonl(fmp4BOX.traf_video->trafBox->header.size);
+			fmp4BOX.traf_video->trunBox->header.size = t_htonl(fmp4BOX.traf_video->trunBox->header.size);
+			fmp4BOX.traf_video->trafBox->header.size = t_htonl(fmp4BOX.traf_video->trafBox->header.size);
 			//以下两个后边的音频还需要继续更新长度，这里先不要转化成大端模式
-			//fmp4BOX.moofBox->header.size = htonl(fmp4BOX.moofBox->header.size);
-			//fmp4BOX.mdatBox->header.size = htonl(fmp4BOX.mdatBox->header.size);
+			//fmp4BOX.moofBox->header.size = t_htonl(fmp4BOX.moofBox->header.size);
+			//fmp4BOX.mdatBox->header.size = t_htonl(fmp4BOX.mdatBox->header.size);
 
 			
 					
@@ -692,10 +696,10 @@ void * remuxVideoAudio(void *args)
 			fmp4BOX.mdatBox->header.size += buf_remux_audio.write_pos - buf_remux_audio.remux_audio_buf;
 
 			//转化成大端格式：
-			fmp4BOX.traf_video->trunBox->header.size = htonl(fmp4BOX.traf_video->trunBox->header.size);
-			fmp4BOX.traf_video->trafBox->header.size = htonl(fmp4BOX.traf_video->trafBox->header.size);
-			fmp4BOX.moofBox->header.size = htonl(fmp4BOX.moofBox->header.size);
-			fmp4BOX.mdatBox->header.size = htonl(fmp4BOX.mdatBox->header.size);
+			fmp4BOX.traf_video->trunBox->header.size = t_htonl(fmp4BOX.traf_video->trunBox->header.size);
+			fmp4BOX.traf_video->trafBox->header.size = t_htonl(fmp4BOX.traf_video->trafBox->header.size);
+			fmp4BOX.moofBox->header.size = t_htonl(fmp4BOX.moofBox->header.size);
+			fmp4BOX.mdatBox->header.size = t_htonl(fmp4BOX.mdatBox->header.size);
 					
 			//-----将音频部分的 traf       box 写入到文件--------------------------------------------------------------------------------
 			//moof
@@ -924,6 +928,8 @@ int Fmp4_encode_exit(void)
 	int ret = remux_exit();
 	return ret;
 }
+
+
 
 
 
