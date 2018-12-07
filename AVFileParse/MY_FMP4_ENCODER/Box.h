@@ -1,8 +1,12 @@
 #ifndef _BOX_H
-#definr _BOX_H
+#define _BOX_H
 
 typedef unsigned int Fmp4TrackId; //轨道ID
-typedef int 		 Fmp4FileId; //文件描述符
+
+#define VIDEO 1
+#define AUDIO 2
+#define HINT  3 //一般不用 
+
 
 
 typedef struct _BoxHeader_t
@@ -27,7 +31,7 @@ typedef struct FileTypeBox_t
 	BoxHeader_t 	  header;
 	unsigned int  major_brand;		//4字节的品牌名称 默认值：iso6
    	unsigned int  minor_version;	//4字节的版本号
-   	unsigned int compatible_brands[];//内容4字节的兼容品牌数组
+   	unsigned int compatible_brands[0];//内容4字节的兼容品牌数组
 }ftyp_box;
 
 typedef struct MovieBox_t
@@ -63,9 +67,9 @@ typedef struct MovieHeaderBox_t
 											*/
 											
 	int  			rate; 					//typically 1.0  //播放速率,高16和低16分别表示小数点前后整数部分和小数部分
-	short   				volume;   			//typically, full volume  //声音,高8位和低8位分别表示小数点前后整数和小数部分
-	const short  		reserved_2;  		//2字节保留位
-	const unsigned int[2]  	reserved_8; 		//4+4字节保留位
+	short   		volume;   			//typically, full volume  //声音,高8位和低8位分别表示小数点前后整数和小数部分
+	short  			reserved_2;  		//2字节保留位
+	unsigned int  	reserved_8[2]; 		//4+4字节保留位
 	int 			matrix[9];          	// Unity matrix视频变换矩阵
 	int 			pre_defined [6];  		//6*4保留位
 	unsigned int  	next_track_ID; 			//4字节的下一个track id
@@ -111,14 +115,14 @@ typedef struct TrackHeaderBox_t
 	unsigned int  		creation_time; 		//创建时间（相对于UTC时间1904-01-01零点的秒数）
 	unsigned int  		modification_time;	//修改时间
 	unsigned int  		track_ID;			//id号，不能重复且不能为0
-	const unsigned int  reserved;			//4字节保留位
+	unsigned int  		reserved;			//4字节保留位
 	unsigned int  		duration;			//时长
 
-	const unsigned int 	reserved[2];		// reserved: 2 * 4 bytes    保留位
+	unsigned int 		reserved2[2];		// reserved: 2 * 4 bytes    保留位
 	short  				layer;
 	short  				alternate_group;	// layer(2bytes) + alternate_group(2bytes)  视频层，默认为0，值小的在上层.track分组信息，默认为0表示该track未与其他track有群组关系
 	short 				volume; 			//volume(2bytes)
-	const unsigned short reserved_2;			//reserved(2bytes) 
+	unsigned short 		reserved_2;			//reserved(2bytes) 
 	int matrix[9];							//视频变换矩阵// unity matrix
 	unsigned int width;						//宽
 	unsigned int height;					//高
@@ -176,6 +180,7 @@ typedef struct SampleDependencyTypeBox_t
 
 }sdtp_box;
 
+
 typedef struct TrackFragmentRunBox_t
 {
 	FullBoxHeader_t 	header;
@@ -194,9 +199,19 @@ typedef struct TrackFragmentRunBox_t
         unsigned int sample_composition_time_offset; 
    }[ sample_count ]
    */
-   unsigned int placeholder[0];
+   unsigned char placeholder[0];
 
 }trun_box;
+
+//将上方的 trun box里边的samples部分提取出来专门处理
+//trun box 的sample数组元素结构
+typedef struct _trun_sample_t
+{
+    unsigned int sample_duration; //样本（可理解为1帧）的持续时间
+    unsigned int sample_size;
+    unsigned int sample_flags;
+    unsigned int sample_composition_time_offset; 
+}trun_sample_t;
 
 /****四级BOX*********************************************************/
 typedef struct  MediaHeaderBox_t
@@ -207,7 +222,7 @@ typedef struct  MediaHeaderBox_t
     unsigned int  		timescale;			//文件媒体在1秒时间内的刻度值，可以理解为1秒长度
     unsigned int  		duration;			//track的时间长度
 	//bit(1) pad = 0;		//放在下方language的第0个bit位了，组合成2个字节
-	unsigned char[2] pad_language;				// language: und (undetermined) 媒体语言码。最高位为0，后面15位为3个字符（见ISO 639-2/T标准中定义）
+	unsigned char 		pad_language[2] ;	// language: und (undetermined) 媒体语言码。最高位为0，后面15位为3个字符（见ISO 639-2/T标准中定义）
 	
 }mdhd_box;
 
@@ -216,7 +231,7 @@ typedef struct HandlerReferenceBox_t
 	FullBoxHeader_t 	header;
 	unsigned int 		pre_defined;  		//4字节保留位
 	unsigned int 		handler_type;      //4字节 vide对应视频 soun对应只有音频
-	const unsigned int reserved[3] reserved; //3*4保留位
+	unsigned int  		reserved[3]; //3*4保留位
 
 	//string   name;
 	char name[0];//name,长度不定以'\0'结尾 ,占位
@@ -242,8 +257,8 @@ typedef struct VideoMediaHeaderBox_t
 typedef struct SoundMediaHeaderBox_t
 {
 	FullBoxHeader_t 	header;
-	short 					balance;
-   	const unsigned short  	reserved;
+	short 				balance;
+   	unsigned short  	reserved;
 
 }smhd_box;
 
@@ -276,7 +291,7 @@ typedef struct DataReferenceBox_t
 typedef struct _SampleEntry_t
 {
 	BoxHeader_t 	header;			//
-	const unsigned char reserved[6];
+	unsigned char 	reserved[6];
 	unsigned short 		data_reference_index;
 }SampleEntry_t;
 
@@ -293,18 +308,18 @@ typedef struct _VideoSampleEntry_t
 	SampleEntry_t 				sample_entry;
 	
 	unsigned short 				pre_defined;
-	const unsigned short 		reserved;
-	unsigned int 				pre_defined[3];
+	unsigned short 				reserved_A;
+	unsigned int 				pre_defined12[3];
 	unsigned short 				width;
 	unsigned short 				height;
 	unsigned int 				horizresolution; // 72 dpi 
 
 	unsigned int 				vertresolution; // 72 dpi
-	const unsigned int 			reserved;
+	unsigned int 				reserved_B;
 	unsigned short 				frame_count;  //frame_count表明多少帧压缩视频存储在每个样本。默认是1,每样一帧;它可能超过1每个样本的多个帧数
 	char 						compressorname [32];
 	unsigned short 				depth;
-	short 						pre_defined;
+	short 						pre_defined2;
 	
 }VideoSampleEntry_t ;//就是 avc1_box，本代码采用avc1_box
 
@@ -315,11 +330,11 @@ typedef struct _AudioSampleEntry_t
 {
 	SampleEntry_t 				sample_entry;
 	
-	const unsigned int[2] 		reserved;
+	unsigned int 				reserved8[2] 		;
 	unsigned short 				channelcount;//单声道还是双声道
 	unsigned short 				samplesize;	//样本大小（位宽）
 	unsigned short 				pre_defined;
-	const unsigned short 		reserved;
+	unsigned short 				reserved2;
 	unsigned int 				samplerate;//{timescale of media}<<16;samplerate 显然要右移16位才有意义
 
 }AudioSampleEntry_t;//就是 mp4a_box，本代码采用mp4a_box
@@ -366,6 +381,7 @@ typedef struct SampleToChunkBox_t
 
 typedef struct SampleSizeBox_t
 {
+	FullBoxHeader_t 	header;
 	unsigned int sample_size;
 	unsigned int sample_count;
 
@@ -407,6 +423,14 @@ typedef struct DataEntryUrnBox_t
 	char 				location[0];
 }urn_box;
 
+/**
+*AVCDecoderConfigurationRecord.包含着是H.264解码相关比较重要的sps和pps信息，
+*再给AVC解码器送数据 流之前一定要把sps和pps信息送出，否则的话解码器不能正常解码。
+*而且在解码器stop之后再次start之前，如seek、快进快退状态切换等，
+*都 需要重新送一遍sps和pps的信息.AVCDecoderConfigurationRecord在FLV文件中一般情况也是出现1次，
+*也就是第一个 video tag.
+*/
+
 typedef struct AVCDecoderConfigurationRecord_t
 {
 	BoxHeader_t 		header; 
@@ -435,23 +459,32 @@ typedef struct AVCDecoderConfigurationRecord_t
 	//}
 
 }avcc_box;
+typedef struct _avcc_box_info_t
+{
+	avcc_box*		avcc_buf;	
+	unsigned int 	buf_length;
+
+}avcc_box_info_t;
+avcc_box_info_t avcc_box_info = {0}; //主要外部传入sps/pps nalu 包来初始化
+
+
 
 /*
 typedef struct MPEG4AudioSampleEntry_t
 {
 	BoxHeader_t 			header;
 	
-	const unsigned int 		reserved[2];
+	unsigned int 			reserved[2];
 	unsigned short 			channelcount;//单声道还是双声道
 	unsigned short 			samplesize;	//样本大小（位宽）
 	unsigned short 			pre_defined;
-	const unsigned short 	reserved2;
+	unsigned short 			reserved2;
 	unsigned int 			samplerate; 	//{timescale of media}<<16;
 
 }mp4a_box;
 */
 
-#define avc1_box VisualSampleEntry_t
+#define avc1_box VideoSampleEntry_t
 #define mp4a_box AudioSampleEntry_t
 
 
@@ -524,7 +557,7 @@ typedef struct _trak_video_t
 {
 	lve2 trak_box *trakBox;
 		lve3 tkhd_box *tkhdBox;
-		lve3 mdia_box *mdatBox;
+		lve3 mdia_box *mdiaBox;
 			lve4 mdhd_box *mdhdBox;
 			lve4 hdlr_box *hdlrBox;
 			lve4 minf_box *minfBox;
@@ -596,11 +629,13 @@ typedef struct _fmp4_file_box_t
 			lve3 trex_box *trex_video;
 			lve3 trex_box *trex_audio;
 		//lve2 udta_box *udtaBox;
+	
 	lve1 moof_box *moofBox;
 		lve2 mfhd_box *mfhdBox;
 		lve2 traf_video_t *traf_video;
 		lve2 traf_audio_t *traf_audio;
 	lve1 mdat_box *mdatBox;
+
 	
 
 }fmp4_file_box_t;
@@ -649,6 +684,49 @@ typedef struct _all_box_t
 	esds_box *esdsBox;
 	
 }all_box_t;
+
+ftyp_box * ftyp_box_init();
+moov_box* moov_box_init(unsigned int box_length);
+moof_box* moof_box_init(unsigned int box_length);
+mdat_box* mdat_box_init(unsigned int box_length);
+mvhd_box* mvhd_box_init(unsigned int timescale,unsigned int duration);
+trak_box* trak_box_init(unsigned int box_length);
+mvex_box*	mvex_box_init(unsigned int box_length);
+mfhd_box* mfhd_box_init();
+traf_box*	traf_box_init(unsigned int box_length);
+tkhd_box* tkhd_box_init(unsigned int trackId,unsigned int duration,unsigned int width,unsigned int height);
+mdia_box* mdia_box_init(unsigned int box_length);
+trex_box*	trex_box_init(unsigned int trackId);
+tfhd_box*	tfhd_box_init(unsigned int trackId);
+tfdt_box*	tfdt_box_init(int baseMediaDecodeTime);
+sdtp_box*	sdtp_box_init();
+trun_box*	trun_box_init();
+mdhd_box* mdhd_box_init(unsigned int timescale,unsigned int duration);
+hdlr_box*	hdlr_box_init();
+minf_box*	minf_box_init(unsigned int box_length);
+vmhd_box* vmhd_box_init();
+smhd_box*	smhd_box_init();
+dinf_box* dinf_box_init(unsigned int box_length);
+stbl_box*	stbl_box_init(unsigned int box_length);
+dref_box* dref_box_init();
+void HintSampleEntry();
+stsd_box*  AudioSampleEntry(unsigned char channelCount,unsigned short sampleRate);
+stsd_box* VideoSampleEntry(unsigned short width,unsigned short height);
+stsd_box* stsd_box_init(unsigned int handler_type,
+							 unsigned short width,unsigned short height, // for video tracks
+							 unsigned char channelCount,unsigned short sampleRate // for audio tracks
+							);
+
+stts_box*	stts_box_init(void);
+stsc_box*	stsc_box_init();
+stsz_box* stsz_box_init(void);
+stco_box*	stco_box_init();
+int url_box_init();
+int	urn_box_init();
+avc1_box* avc1_box_init();
+mp4a_box* mp4a_box_init();
+avcc_box_info_t *	avcc_box_init(unsigned char* naluData, int naluSize);
+
 
 
 

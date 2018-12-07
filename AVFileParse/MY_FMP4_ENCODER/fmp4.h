@@ -1,0 +1,215 @@
+ #ifndef _FMP4_H
+ #define _FMP4_H
+#include "Box.h"
+
+
+#define VIDEO_TRACK 1   //视频轨道
+#define AUDIO_TRACK 2   //音频轨道
+#define HAVE_VIDEO 1
+#define HAVE_AUDIO 1
+
+
+/*================START=====================================================
+以下结构用来记录fmp4文件各个box距文件开头的位置偏移
+==========================================================================*/
+//fmp4文件中 video trak 分支各box距文件开头的位置偏移
+typedef struct _trak_video_lable_t
+{
+	lve2 unsigned int trakBox_offset;
+		lve3 unsigned int tkhdBox_offset;
+		lve3 unsigned int mdiaBox_offset;
+			lve4 unsigned int mdhdBox_offset;
+			lve4 unsigned int hdlrBox_offset;
+			lve4 unsigned int minfBox_offset;
+				lve5 unsigned int vmhdBox_offset;
+				lve5 unsigned int dinfBox_offset;
+					lve6 unsigned int drefBox_offset;
+						lve7 unsigned int urlBox_offset; 
+				lve5 unsigned int stblBox_offset;
+					lve6 unsigned int stsdBox_offset;
+						//lve7 unsigned int avc1Box_offset; 		
+							//lve8 unsigned int avccBox_offset;	
+							//lve8 unsigned int paspBox_offset;	//暂未实现
+					lve6 unsigned int sttsBox_offset;
+					lve6 unsigned int stscBox_offset;
+					lve6 unsigned int stszBox_offset;
+					lve6 unsigned int stcoBox_offset;
+}trak_video_lable_t;
+
+//fmp4文件中 audio trak 分支各box距文件开头的位置偏移
+typedef struct _trak_audio_lable_t
+{
+	lve2 unsigned int trakBox_offset;
+		lve3 unsigned int tkhdBox_offset;
+		lve3 unsigned int mdiaBox_offset;
+			lve4 unsigned int mdhdBox_offset;
+			lve4 unsigned int hdlrBox_offset;
+			lve4 unsigned int minfBox_offset;
+				lve5 unsigned int smhdBox_offset;
+				lve5 unsigned int dinfBox_offset;
+					lve6 unsigned int drefBox_offset;
+						lve7 unsigned int url_box_offset;
+				lve5 unsigned int stblBox_offset;
+					lve6 unsigned int stsdBox_offset;
+						//lve7 unsigned int mp4aBox_offset;		//归属在stsd_box中一起初始化了
+							//lve8 unsigned int esdsBox_offset;	//归属在stsd_box中一起初始化了
+					lve6 unsigned int sttsBox_offset;
+					lve6 unsigned int stscBox_offset;
+					lve6 unsigned int stszBox_offset;
+					lve6 unsigned int stcoBox_offset;
+					
+
+}trak_audio_lable_t;
+
+//fmp4文件中 video traf 分支各box距文件开头的位置偏移
+typedef struct _traf_video_lable_t
+{
+	lve2 unsigned int trafBox_offset;
+		lve3 unsigned int tfhdBox_offset;
+		lve3 unsigned int tfdtBox_offset;
+		lve3 unsigned int trunBox_offset;
+		
+}traf_video_lable_t;
+
+//fmp4文件中 audio traf 分支各box距文件开头的位置偏移
+typedef struct _traf_audio_lable_t
+{
+	lve2 unsigned int trafBox_offset;
+		lve3 unsigned int tfhdBox_offset;
+		lve3 unsigned int tfdtBox_offset;
+		lve3 unsigned int trunBox_offset;
+}traf_audio_lable_t;
+
+//fmp4文件各个box距文件开头的位置偏移
+typedef struct _fmp4_file_lable_t
+{
+	lve1 unsigned int ftypBox_offset;
+	lve1 unsigned int moovBox_offset;
+		lve2 unsigned int mvhdBox_offset;
+		lve2 trak_video_lable_t trak_video_offset;
+		lve2 trak_audio_lable_t trak_audio_offset;
+		lve2 unsigned int mvexBox_offset;
+			lve3 unsigned int trex_video_offset;
+			lve3 unsigned int trex_audio_offset;
+		//lve2 unsigned int udtaBox_offset;
+	lve1 unsigned int moofBox_offset;
+		lve2 unsigned int mfhdBox_offset;
+		lve2 traf_video_lable_t traf_video_offset;
+		lve2 traf_audio_lable_t traf_audio_offset;
+	lve1 unsigned int mdatBox_offset;
+
+}fmp4_file_lable_t;
+fmp4_file_lable_t fmp4_file_lable = {0};
+
+#define is_equal(a,b)	if(a != b){ERROR_LOG("fwrite file failed!\n");return NULL;}
+#define fwrite_box(ptr,size,nmemb,stream,ret) {ret = fwrite (ptr,size,nmemb,stream );is_equal(ret, (size*nmemb));}
+
+//===============END=================================================
+
+
+typedef struct _trak_video_init_t
+{
+	unsigned int	width;
+	unsigned int    height;
+	unsigned int timescale; // timescale: 4 bytes    文件媒体在1秒时间内的刻度值，可以理解为1秒长度
+	unsigned int duration;  // duration: 4 bytes  track的时间长度  duration/timescale = track的时长
+
+	
+}trak_video_init_t;
+
+typedef struct _trak_audio_init_t
+{
+	unsigned int timescale; // timescale: 4 bytes    文件媒体在1秒时间内的刻度值，可以理解为1秒长度
+	unsigned int duration;  // duration: 4 bytes  track的时间长度  duration/timescale = track的时长
+	
+	unsigned char channelCount; //通道数 1 或 2
+	unsigned short sampleRate;  //样本率
+}trak_audio_init_t;
+
+
+
+
+/*===================================================================
+音视频混合相关部分
+n*(moof + mdat)模式
+1.将传入的原始数据构造成mdat box(真实数据) 
+2.并生成对应的 moofbox(描述信息)
+===================================================================*/
+
+//定义1s大小的音视频帧缓空间
+/*
+44100HZ AAC数据采样   1024采样点为1帧， 16位宽下 能容纳1s的容量
+(1024*2)*(44100/1024) = 88200 Bytes
+*/
+#define REMUX_AUDIO_BUF_SIZE  (88200)
+
+//无法确定1s的h264数据有多大，给个大概值
+#define REMUX_VIDEO_BUF_SIZE  (1024*1024) 
+
+/*audio trun box里边允许容纳的最大samples（一帧一个sample）数，
+该值不能小于传入audio数据的帧率，音视频混合器 remux 是按照1S的数据量来打包的
+aac：44100HZ/1024 = 44帧/s（向上取整）
+g711: 8000HZ/160 = 50 帧/s
+*/
+#define TRUN_AUDIO_MAX_SAMPLES (60)
+
+/*video trun box里边允许容纳的最大samples（一帧一个sample）数，
+该值不能小于传入video数据的帧率，音视频混合器 remux 是按照1S的数据量来打包的
+H264: MAX ： 30帧/s
+*/
+#define TRUN_VIDEO_MAX_SAMPLES (40)
+
+
+//写入mdat box中的每个sample的描述信息（放在trun box中）
+typedef struct _sample_info_t
+{
+	char* 			sample_pos;//该sample在buf中的位置
+	unsigned int	sample_len;//该sample的长度
+	trun_sample_t   trun_sample; //trun box 的sample数组元素信息
+}sample_info_t;
+
+/*
+混合器，video 缓冲结构
+*/
+typedef struct _buf_remux_video_t
+{
+	char*	remux_video_buf;	//buf的首地址
+	char*	write_pos;			//写指针的位置
+	char*	read_pos;			//读指针位置
+	int 	frame_count;		//buf 中已经存储的帧数量
+	int 	frame_rate; 		//外部传入视频数据的原本帧率
+	sample_info_t sample_info[TRUN_VIDEO_MAX_SAMPLES]; //buffer 中 video sample（帧）的信息数组指针
+	unsigned char write_index;	//sample_info数组的即将要写的下标
+	unsigned char read_index;	//sample_info数组的即将要读的下标
+	unsigned char need_remux;	//buf已经缓冲好1S的samples,需要将完整的 moof+mdat box 写入到文件
+	unsigned char reserved;
+	pthread_mutex_t mut;		//读写锁
+//	pthread_cond_t remux_ready;
+}buf_remux_video_t;
+buf_remux_video_t buf_remux_video = {0};
+
+/*
+混合器，audio 缓冲结构
+*/
+typedef struct _buf_remux_audio_t
+{
+	char*	remux_audio_buf;	//buf的首地址
+	char*	write_pos;			//写指针的位置
+	char*	read_pos;			//读指针位置
+	int 	frame_count;		//buf 中已经存储的帧数量
+	int 	frame_rate; 		//外部传入视频数据的原本帧率
+	sample_info_t sample_info[TRUN_AUDIO_MAX_SAMPLES]; //buffer 中 audio sample（帧）的信息数组
+	unsigned char write_index;	//sample_info数组的即将要写的下标
+	unsigned char read_index;	//sample_info数组的即将要读的下标
+	unsigned char need_remux;	//buf已经缓冲好1S的samples,需要将完整的 moof+mdat box 写入到文件
+	unsigned char reserved;
+	pthread_mutex_t mut;		//读写锁
+//	pthread_cond_t remux_ready;
+	
+}buf_remux_audio_t;
+buf_remux_audio_t buf_remux_audio = {0};
+
+
+int remux_init(unsigned int Vframe_rate,unsigned int Aframe_rate);
+
+ #endif

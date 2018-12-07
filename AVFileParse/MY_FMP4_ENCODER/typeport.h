@@ -8,6 +8,7 @@
 
 #ifndef TYPEPORT_H
 #define TYPEPORT_H
+#include <stdio.h>
 
 #ifdef __cplusplus
 extern "C"
