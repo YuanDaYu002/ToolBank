@@ -1,12 +1,13 @@
- #ifndef _FMP4_H
- #define _FMP4_H
+ 
+#ifndef _FMP4_H
+#define _FMP4_H
 #include "Box.h"
 
 
 #define VIDEO_TRACK 1   //视频轨道
 #define AUDIO_TRACK 2   //音频轨道
 #define HAVE_VIDEO 1
-#define HAVE_AUDIO 1
+#define HAVE_AUDIO 0
 
 
 /*================START=====================================================
@@ -101,16 +102,31 @@ typedef struct _fmp4_file_lable_t
 }fmp4_file_lable_t;
 fmp4_file_lable_t fmp4_file_lable = {0};
 
-#define is_equal(a,b)	if(a != b){ERROR_LOG("fwrite file failed!\n");return NULL;}
-#define fwrite_box(ptr,size,nmemb,stream,ret) {ret = fwrite (ptr,size,nmemb,stream );is_equal(ret, (size*nmemb));}
+#define is_equal(a,b,stream) 	do{\
+	if(a != b)\
+	{\
+		ERROR_LOG("fwrite file failed!\n");\
+		fclose(stream);\
+		return NULL;\
+	}\
+}while(0)
+
+#define fwrite_box(ptr,size,nmemb,stream,ret) 	do{\
+	if(NULL == ptr)\
+		return NULL;\
+	ret = fwrite (ptr,size,nmemb,stream );\
+	is_equal(ret, (size*nmemb),stream);\
+	free(ptr);\
+	ptr = NULL;\
+}while(0)
 
 //===============END=================================================
 
 
 typedef struct _trak_video_init_t
 {
-	unsigned int	width;
-	unsigned int    height;
+	unsigned short	width;
+	unsigned short    height;
 	unsigned int timescale; // timescale: 4 bytes    文件媒体在1秒时间内的刻度值，可以理解为1秒长度
 	unsigned int duration;  // duration: 4 bytes  track的时间长度  duration/timescale = track的时长
 
@@ -122,8 +138,9 @@ typedef struct _trak_audio_init_t
 	unsigned int timescale; // timescale: 4 bytes    文件媒体在1秒时间内的刻度值，可以理解为1秒长度
 	unsigned int duration;  // duration: 4 bytes  track的时间长度  duration/timescale = track的时长
 	
-	unsigned char channelCount; //通道数 1 或 2
 	unsigned short sampleRate;  //样本率
+	unsigned char channelCount; //通道数 1 或 2
+	unsigned char reserved;
 }trak_audio_init_t;
 
 
@@ -211,5 +228,9 @@ buf_remux_audio_t buf_remux_audio = {0};
 
 
 int remux_init(unsigned int Vframe_rate,unsigned int Aframe_rate);
+int sps_pps_parameter_set(void);
+
 
  #endif
+
+

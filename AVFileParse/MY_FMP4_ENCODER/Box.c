@@ -1,5 +1,8 @@
 
 
+
+
+
 #include <string.h>
 #include <sys/time.h>
 #include <stdlib.h>
@@ -26,6 +29,20 @@ int switch_small_BigEndian(int num)
 
 }
 
+//用来以十六进制字节流打印box
+void print_char_array(unsigned char* box_name,unsigned char*start,unsigned int length)
+{
+	unsigned char*p = start;
+	unsigned int i = 0;
+	printf("\n  %s[]: ",box_name);
+	for(i=0;i<length;i++)
+	{
+		printf("%x ",p[i]);
+	}
+	printf("\n");
+
+}
+
 /*
 	请求一个 ftpy box 
 	返回值为初始化后的box首地址
@@ -42,30 +59,31 @@ ftyp_box * ftyp_box_init()
         	};
 
 	int box_size = sizeof(Array)+sizeof(BoxHeader_t);
-	ftyp_box *ftpy_item = (ftyp_box *)malloc(box_size);
-	if(NULL == ftpy_item)
+	DEBUG_LOG("ftpy_item malloc size(%d)\n",box_size);
+	ftyp_box *ftyp_item = (ftyp_box *)malloc(box_size);
+	if(NULL == ftyp_item)
 		return NULL;
 	
-	memset(ftpy_item,0,box_size);
+	memset(ftyp_item,0,box_size);
+	ftyp_item->header.size = t_htonl(box_size);
+	strncpy(ftyp_item->header.type,"ftyp",4);
 	
-	ftpy_item->header.size = t_htonl(box_size);
-	//strncpy(ftpy_item->header->type,"ftpy",4);
-	strncpy(ftpy_item->header.type,"yptf",4);//大端模式存储
-	
-	memcpy(((char*)ftpy_item) + sizeof(BoxHeader_t),Array,sizeof(Array));
+	memcpy(((char*)ftyp_item) + sizeof(BoxHeader_t),Array,sizeof(Array));
 
-	return ftpy_item;
+	return ftyp_item;
 	
 }
 
 moov_box* moov_box_init(unsigned int box_length)
 {
+	DEBUG_LOG("moov_item malloc size(%d)\n",box_length);
 	moov_box * moov_item = (moov_box *)malloc(box_length);
 	if(NULL == moov_item)
 		return NULL;
 	memset(moov_item,0,box_length);
 	moov_item->header.size = t_htonl(box_length);//上层调用增加child box后再及时修正
-	strncpy(moov_item->header.type,"voom",4);//大端模式存储
+	strncpy(moov_item->header.type,"moov",4);
+
 
 	return moov_item;
 	
@@ -73,24 +91,26 @@ moov_box* moov_box_init(unsigned int box_length)
 
 moof_box* moof_box_init(unsigned int box_length)
 {
+	DEBUG_LOG("moof_item malloc size(%d)\n",box_length);
 	moof_box * moof_item = (moof_box *)malloc(box_length);
 	if(NULL == moof_item)
 		return NULL;
 	memset(moof_item,0,box_length);
 	moof_item->header.size = t_htonl(box_length);//上层调用增加child box后再及时修正
-	strncpy(moof_item->header.type,"foom",4);//大端模式存储
+	strncpy(moof_item->header.type,"moof",4);
 
 	return moof_item;
 }
 
 mdat_box* mdat_box_init(unsigned int box_length)
 {
+	DEBUG_LOG("mdat_item malloc size(%d)\n",box_length);
 	mdat_box * mdat_item = (mdat_box *)malloc(box_length);
 	if(NULL == mdat_item)
 		return NULL;
 	memset(mdat_item,0,box_length);
 	mdat_item->header.size = t_htonl(box_length);//上层调用增加child box后再及时修正
-	strncpy(mdat_item->header.type,"tadm",4);//大端模式存储
+	strncpy(mdat_item->header.type,"mdat",4);
 
 	return mdat_item;
 }
@@ -103,13 +123,18 @@ mdat_box* mdat_box_init(unsigned int box_length)
 */
 mvhd_box* mvhd_box_init(unsigned int timescale,unsigned int duration)
 {
+	DEBUG_LOG("mvhd_item malloc size(%d)\n",sizeof(mvhd_box));
 	mvhd_box * mvhd_item = (mvhd_box *)malloc(sizeof(mvhd_box));
 	if(NULL == mvhd_item)
+	{
+		ERROR_LOG("malloc failed!\n");
 		return NULL;
+	}
+		
 	memset(mvhd_item,0,sizeof(mvhd_box));
 
 	mvhd_item->header.size = t_htonl(sizeof(mvhd_box));
-	strncpy(mvhd_item->header.type,"dhvm",4);//大端模式存储
+	strncpy(mvhd_item->header.type,"mvhd",4);
 	mvhd_item->header.version = 0;
 
 	/*struct timeval buf;
@@ -150,8 +175,8 @@ mvhd_box* mvhd_box_init(unsigned int timescale,unsigned int duration)
 				0x00, 0x00, 0x00, 0x00, // ----end pre_defined 6 * 4 bytes----
 				0xFF, 0xFF, 0xFF, 0xFF  // next_track_ID 下一个track使用的id号
 		};
-
-		memcpy(((char*)mvhd_item) + sizeof(FullBoxHeader_t),MVHD,sizeof(MVHD));
+		DEBUG_LOG("sizeof(MVHD) = %d\n",sizeof(MVHD));
+		memcpy((char*)mvhd_item + 8,MVHD,sizeof(MVHD));//+8是为了跳过header的size和type
 
 		return mvhd_item;
 	
@@ -159,24 +184,35 @@ mvhd_box* mvhd_box_init(unsigned int timescale,unsigned int duration)
 
 trak_box* trak_box_init(unsigned int box_length)
 {
+	DEBUG_LOG("track_item malloc size(%d)\n",box_length);
+	
 	trak_box *track_item = (trak_box*)malloc(box_length);
 	if(NULL == track_item)
+	{
+		ERROR_LOG("trak_box_init error!\n");
 		return NULL;
+	}
 	memset(track_item,0,box_length);
 
 	track_item->header.size = t_htonl(box_length);
-	strncpy(track_item->header.type,"kart",4);//大端模式存储
+	strncpy(track_item->header.type,"trak",4);
+	
 	return track_item;
 }
 
 mvex_box*	mvex_box_init(unsigned int box_length)
 {
+	DEBUG_LOG("mvex_item malloc size(%d)\n",box_length);
 	mvex_box *mvex_item = (mvex_box*)malloc(box_length);
 	if(NULL == mvex_item)
+	{
+		ERROR_LOG("malloc failed!\n");
 		return NULL;
+	}
+	
 	memset(mvex_item,0,box_length);
 	mvex_item->header.size  = t_htonl(box_length);
-	strncpy(mvex_item->header.type,"xevm",4);//大端模式存储
+	strncpy(mvex_item->header.type,"mvex",4);
 	mvex_item->header.version = 0;
 
 	return mvex_item;
@@ -185,12 +221,13 @@ mvex_box*	mvex_box_init(unsigned int box_length)
 
 mfhd_box* mfhd_box_init()
 {
+	DEBUG_LOG("mfhd_item malloc size(%d)\n",sizeof(mfhd_box));
 	mfhd_box *mfhd_item = (mfhd_box*)malloc(sizeof(mfhd_box));
 	if(NULL == mfhd_item)
 		return NULL;
 	memset(mfhd_item,0,sizeof(mfhd_box));
 	mfhd_item->header.size  = t_htonl(sizeof(mfhd_box));
-	strncpy(mfhd_item->header.type,"dhfm",4);//大端模式存储
+	strncpy(mfhd_item->header.type,"mfhd",4);
 	mfhd_item->header.version = 0;
 
 	return mfhd_item;
@@ -198,12 +235,13 @@ mfhd_box* mfhd_box_init()
 
 traf_box*	traf_box_init(unsigned int box_length)
 {
+	DEBUG_LOG("traf_item malloc size(%d)\n",box_length);
 	traf_box *traf_item = (traf_box*)malloc(box_length);
 	if(NULL == traf_item)
 		return NULL;
 	memset(traf_item,0,box_length);
 	traf_item->header.size  = t_htonl(box_length);
-	strncpy(traf_item->header.type,"fart",4);//大端模式存储
+	strncpy(traf_item->header.type,"traf",4);
 
 
 	return traf_item;
@@ -211,13 +249,17 @@ traf_box*	traf_box_init(unsigned int box_length)
 
 
 /***三级BOX初始化***************************************/
-tkhd_box* tkhd_box_init(unsigned int trackId,unsigned int duration,unsigned int width,unsigned int height)
+tkhd_box* tkhd_box_init(unsigned int trackId,unsigned int duration,unsigned short width,unsigned short height)
 {
+	DEBUG_LOG("tkhd_item malloc size(%d)\n",sizeof(tkhd_box));
 	tkhd_box *tkhd_item = (tkhd_box*)malloc(sizeof(tkhd_box));
 	if(NULL == tkhd_item)
+	{
+		ERROR_LOG("malloc failed !\n");
 		return NULL;
+	}
 	tkhd_item->header.size = t_htonl(sizeof(tkhd_box));
-	strncpy(tkhd_item->header.type,"dhkt",4);//大端模式存储
+	strncpy(tkhd_item->header.type,"tkhd",4);
 	
 	//tkhd_item->header->version = 0;//放到下边的数组了
 	unsigned char TKHD[] = {
@@ -258,35 +300,47 @@ tkhd_box* tkhd_box_init(unsigned int trackId,unsigned int duration,unsigned int 
             (height) & 0xFF,
             0x00, 0x00
         };
-	
-		memcpy(&tkhd_item->header.version,TKHD,sizeof(TKHD));
+			
+		DEBUG_LOG("sizeof(TKHD) = %d\n",sizeof(TKHD));	
+		memcpy(tkhd_item + 8,TKHD,sizeof(TKHD));//+ 8 为了跳过 header 里边的size和type
 		return tkhd_item;
 	
 }
 
 mdia_box* mdia_box_init(unsigned int box_length)
 {
+	DEBUG_LOG("mdia_item malloc size(%d)\n",box_length);
 	mdia_box* mdia_item = (mdia_box*)malloc(box_length);
 	if(NULL == mdia_item)
+	{
+		ERROR_LOG("malloc failed !\n");
 		return NULL;
+	}
+		
 	memset(mdia_item,0,box_length);
 
 	mdia_item->header.size = t_htonl(box_length);
-	strncpy(mdia_item->header.type ,"aidm",4);//大端模式存储
+	strncpy(mdia_item->header.type ,"mdia",4);
 	
 	return mdia_item;
 	
 }
 
+
 trex_box*	trex_box_init(unsigned int trackId)
 {
+
+	DEBUG_LOG("trex_item malloc size(%d)\n",sizeof(trex_box));	
 	trex_box* trex_item = (trex_box*)malloc(sizeof(trex_box));
 	if(NULL == trex_item)
+	{
+		ERROR_LOG("malloc failed!\n");
 		return NULL;
-	memset(trex_item,0,sizeof(trex_box));
+	}
 
+	memset(trex_item,0,sizeof(trex_box));
 	trex_item->header.size = t_htonl(sizeof(trex_box));
-	strncpy(trex_item->header.type,"xert",4);//大端模式存储
+	strncpy(trex_item->header.type,"trex",4);
 	
 	
 		 const unsigned char TREX[] = {
@@ -300,20 +354,20 @@ trex_box*	trex_box_init(unsigned int trackId)
             0x00, 0x00, 0x00, 0x00, // default_sample_size
             0x00, 0x01, 0x00, 0x01 // default_sample_flags
         };
-	memcpy(&trex_item->header.version,TREX,sizeof(TREX));
-
+	memcpy(trex_item + 8 ,TREX,sizeof(TREX));//+ 8为偏移过header的size和type 
 	return trex_item;
 	
 }
 
 tfhd_box*	tfhd_box_init(unsigned int trackId)
 {
+	DEBUG_LOG("tfhd_item malloc size(%d)\n",sizeof(tfhd_box));
 	tfhd_box* tfhd_item = (tfhd_box*)malloc(sizeof(tfhd_box));
 	if(NULL == tfhd_item)
 		return NULL;
 	memset(tfhd_item,0,sizeof(tfhd_box));
 	tfhd_item->header.size = t_htonl(sizeof(tfhd_box));
-	strncpy(tfhd_item->header.type,"dhft",4);//大端模式存储
+	strncpy(tfhd_item->header.type,"tfhd",4);
 
     const unsigned char TFHD[] = {
         0x00, 0x00, 0x00, 0x00, // version(0) & flags
@@ -322,8 +376,8 @@ tfhd_box*	tfhd_box_init(unsigned int trackId)
         (trackId >> 8) & 0xFF,
         (trackId) & 0xFF
     	};
-
-	memcpy(&tfhd_item->header.version,TFHD,sizeof(TFHD));
+	DEBUG_LOG("ziseof(TFHD) = %d\n",sizeof(TFHD));
+	memcpy((unsigned char*)tfhd_item + 8,TFHD,sizeof(TFHD));
 	
 	return tfhd_item;
 	
@@ -331,13 +385,14 @@ tfhd_box*	tfhd_box_init(unsigned int trackId)
 
 tfdt_box*	tfdt_box_init(int baseMediaDecodeTime)
 {
+	DEBUG_LOG("tfdt_item malloc size(%d)\n",sizeof(tfdt_box));
 	tfdt_box* tfdt_item = (tfdt_box*)malloc(sizeof(tfdt_box));
 	if(NULL == tfdt_item)
 		return NULL;
 	memset(tfdt_item,0,sizeof(tfdt_box));
 
 	tfdt_item->header.size = t_htonl(sizeof(tfdt_box));
-	strncpy(tfdt_item->header.type,"tdft",4);//大端模式存储
+	strncpy(tfdt_item->header.type,"tfdt",4);
 
     const unsigned char TFDT[] = {
 		    0x00, 0x00, 0x00, 0x00, // version(0) & flags
@@ -346,8 +401,8 @@ tfdt_box*	tfdt_box_init(int baseMediaDecodeTime)
 		    (baseMediaDecodeTime >> 8 ) & 0xFF,
 		    (baseMediaDecodeTime) & 0xFF
 			};
-
-	memcpy(&tfdt_item->header.version,TFDT,sizeof(TFDT));
+	DEBUG_LOG("sizeof(TFDT) = %d\n",sizeof(TFDT));
+	memcpy((unsigned char *)tfdt_item + 8,TFDT,sizeof(TFDT));
 
 	return tfdt_item;
 
@@ -355,6 +410,7 @@ tfdt_box*	tfdt_box_init(int baseMediaDecodeTime)
 }
 sdtp_box*	sdtp_box_init()
 {
+	DEBUG_LOG("sdtp_item malloc size(%d)\n",sizeof(sdtp_box));
 	sdtp_box* sdtp_item = (sdtp_box*)malloc(sizeof(sdtp_box));
 	if(NULL == sdtp_item)
 		return NULL;
@@ -362,7 +418,7 @@ sdtp_box*	sdtp_box_init()
 	memset(sdtp_item,0,sizeof(sdtp_item));
 
 	sdtp_item->header.size = t_htonl(sizeof(sdtp_box));
-	strncpy(sdtp_item->header.type,"ptds",4);//大端模式存储
+	strncpy(sdtp_item->header.type,"sdtp",4);
 
 	//先不实现，好像没有也没事
 	
@@ -370,25 +426,28 @@ sdtp_box*	sdtp_box_init()
 
 trun_box*	trun_box_init()
 {
+	DEBUG_LOG("trun_item malloc size(%d)\n",sizeof(trun_box));
 	trun_box* trun_item = (trun_box*)malloc(sizeof(trun_box));
 	if(NULL == trun_item)
 		return NULL;
 
 	memset(trun_item,0,sizeof(trun_box));
 	trun_item->header.size = t_htonl(sizeof(trun_box)); 
-	strncpy(trun_item->header.type,"nurt",4);//大端模式存储
+	strncpy(trun_item->header.type,"trun",4);
 
 	trun_item->sample_count = 0;
 	trun_item->first_sample_flags = 0;
 	
 	//后边的samples相关数据需要   音视频混合程序来实时填充，初始化不做处理
-	
+
+	return trun_item;
 }
 	
 /****四级BOX初始化*********************************************************/
 
 mdhd_box* mdhd_box_init(unsigned int timescale,unsigned int duration)
 {
+	DEBUG_LOG("mdhd_item malloc size(%d)\n",sizeof(mdhd_box));
 	mdhd_box* mdhd_item = (mdhd_box*)malloc(sizeof(mdhd_box));
 	if(NULL == mdhd_item)
 		return NULL;
@@ -396,7 +455,7 @@ mdhd_box* mdhd_box_init(unsigned int timescale,unsigned int duration)
 	memset(mdhd_item,0,sizeof(mdhd_item));
 
 	mdhd_item->header.size = t_htonl(sizeof(mdhd_box));
-	strncpy(mdhd_item->header.type,"dhdm",4);//大端模式存储
+	strncpy(mdhd_item->header.type,"mdhd",4);
 
 	unsigned char MDHD[] = {
             0x00, 0x00, 0x00, 0x00, // version(0) + flags // version(0) + flags		box版本，0或1，一般为0。
@@ -413,8 +472,8 @@ mdhd_box* mdhd_box_init(unsigned int timescale,unsigned int duration)
             0x55, 0xC4, // language: und (undetermined) 媒体语言码。最高位为0，后面15位为3个字符（见ISO 639-2/T标准中定义）
             0x00, 0x00 // pre_defined = 0
         	};
-	
-	memcpy(&mdhd_item->header.version,MDHD,sizeof(MDHD));
+	DEBUG_LOG("sizeof(MDHD) = %d\n",sizeof(MDHD));
+	memcpy((unsigned char*)mdhd_item + 8,MDHD,sizeof(MDHD));
 
 	return mdhd_item;
 	
@@ -434,21 +493,25 @@ hdlr_box*	hdlr_box_init()
             0x64, 0x6C, 0x65, 0x72, 0x00 // name: VideoHandler 长度不定     track type name，以‘\0’结尾的字符串
         	};
 			
-	int box_length = sizeof(FullBoxHeader_t)-4 + sizeof(HDLR);//-4代表除去version + flags的长度，因算到数组HDLR中了
+	unsigned int box_length = sizeof(FullBoxHeader_t)-4 + sizeof(HDLR);//-4代表除去version + flags的长度，因算到数组HDLR中了
+	DEBUG_LOG("hdlr_item malloc size(%d) sizeof(HDLR) = %d\n",box_length,sizeof(HDLR));
 	hdlr_box* hdlr_item = (hdlr_box*)malloc(box_length);
 	if(NULL == hdlr_item)
 		return NULL;
 	memset(hdlr_item,0,sizeof(box_length));
 
 	hdlr_item->header.size = t_htonl(box_length);
-	strncpy(hdlr_item->header.type,"rldh",4);//大端模式存储
-
+	strncpy(hdlr_item->header.type,"hdlr",4);
+	memcpy((unsigned char*)hdlr_item + 8,HDLR,sizeof(HDLR));
+	
 	return hdlr_item;
 	
 	
 }
+
 minf_box*	minf_box_init(unsigned int box_length)
 {
+	DEBUG_LOG("minf_item malloc size(%d)\n",box_length);
 	minf_box*minf_item = (minf_box*)malloc(box_length);
 	if(NULL == minf_item)
 		return NULL;
@@ -456,7 +519,7 @@ minf_box*	minf_box_init(unsigned int box_length)
 	memset(minf_item,0,box_length);
 
 	minf_item->header.size = t_htonl(box_length);
-	strncpy(minf_item->header.type,"fnim",4);//大端模式存储
+	strncpy(minf_item->header.type,"minf",4);
 	
 	return minf_item;
 }
@@ -465,6 +528,7 @@ minf_box*	minf_box_init(unsigned int box_length)
 
 vmhd_box* vmhd_box_init()
 {
+	DEBUG_LOG("vmhd_item malloc size(%d)\n",sizeof(vmhd_box));
 	vmhd_box* vmhd_item = (vmhd_box*)malloc(sizeof(vmhd_box));
 	if(NULL == vmhd_item)
 		return NULL;
@@ -472,7 +536,7 @@ vmhd_box* vmhd_box_init()
 	memset(vmhd_item,0,sizeof(vmhd_box));
 	
 	vmhd_item->header.size = t_htonl(sizeof(vmhd_box));
-	strncpy(vmhd_item->header.type,"dhmv",4);//大端模式存储
+	strncpy(vmhd_item->header.type,"vmhd",4);
 
 	unsigned char VMHD[] = {
             0x00, 0x00, 0x00, 0x01, // version(0) + flags
@@ -480,7 +544,8 @@ vmhd_box* vmhd_box_init()
             0x00, 0x00, 0x00, 0x00, // opcolor: 3 * 2 bytes ｛red，green，blue｝
             0x00, 0x00
         	};
-	memcpy(&vmhd_item->header.version,VMHD,sizeof(VMHD));
+	DEBUG_LOG("sizeof(VMHD) = %d\n",sizeof(VMHD));
+	memcpy((unsigned char*)vmhd_item + 8,VMHD,sizeof(VMHD));
 
 	return vmhd_item;
 	
@@ -489,13 +554,14 @@ vmhd_box* vmhd_box_init()
 
 smhd_box*	smhd_box_init()
 {
+	DEBUG_LOG("smhd_item malloc size(%d)\n",sizeof(smhd_box));
 	smhd_box* smhd_item = (smhd_box*)malloc(sizeof(smhd_box));
 	if(NULL == smhd_item)
 		return NULL;
 	memset(smhd_item,0,sizeof(smhd_box));
 
 	smhd_item->header.size = t_htonl(sizeof(smhd_box));
-	strncpy(smhd_item->header.type,"dhms",4);//大端模式存储
+	strncpy(smhd_item->header.type,"smhd",4);
 
 	unsigned char SMHD[] = {
             0x00, 0x00, 0x00, 0x00, // version(0) + flags   box版本，0或1，一般为0。
@@ -503,7 +569,8 @@ smhd_box*	smhd_box_init()
             							一般为0，-1.0表示全部左声道，1.0表示全部右声道+2位保留位
 									*/
         };
-	memcpy(&smhd_item->header.version,SMHD,sizeof(SMHD));
+	DEBUG_LOG("sizeof(SMHD) = %d\n",sizeof(SMHD));
+	memcpy((unsigned char *)smhd_item + 8,SMHD,sizeof(SMHD));
 
 	return smhd_item;
 	
@@ -511,6 +578,7 @@ smhd_box*	smhd_box_init()
 
 dinf_box* dinf_box_init(unsigned int box_length)
 {
+	DEBUG_LOG("dinf_item malloc size(%d)\n",box_length);
 	dinf_box* dinf_item = (dinf_box*)malloc(box_length);
 	if(NULL == dinf_item)
 		return NULL;
@@ -518,7 +586,7 @@ dinf_box* dinf_box_init(unsigned int box_length)
 	memset(dinf_item,0,box_length);
 
 	dinf_item->header.size = t_htonl(box_length);
-	strncpy(dinf_item->header.type,"fnid",4);//大端模式存储
+	strncpy(dinf_item->header.type,"dinf",4);
 
 	return dinf_item;
 	
@@ -526,13 +594,18 @@ dinf_box* dinf_box_init(unsigned int box_length)
 
 stbl_box*	stbl_box_init(unsigned int box_length)
 {
+	DEBUG_LOG("stbl_item malloc size(%d)\n",box_length);
 	stbl_box* stbl_item = (stbl_box*)malloc(box_length);
 	if(NULL == stbl_item)
+	{
+		ERROR_LOG("malloc failed !\n");
 		return NULL;
+	}
+		
 
 	memset(stbl_item,0,box_length);
 	stbl_item->header.size = t_htonl(box_length);
-	strncpy(stbl_item->header.type,"lbts",4);//大端模式存储
+	strncpy(stbl_item->header.type,"stbl",4);
 
 	return stbl_item;
 }
@@ -550,15 +623,17 @@ dref_box* dref_box_init()
             0x00, 0x00, 0x00, 0x01 // version(0) + flags 当“url”或“urn”的box flag为1时，字符串均为空。
         	};
 	int box_length = sizeof(FullBoxHeader_t)-4 + sizeof(DREF);
+	DEBUG_LOG("dref_item malloc size(%d) sizeof(DREF) = %d\n",box_length,sizeof(DREF));
 	dref_box* dref_item = (dref_box*)malloc(box_length);
 	if(NULL == dref_item)
 		return NULL;
 	memset(dref_item,0,box_length);
 
 	dref_item->header.size = t_htonl(box_length);
-	strncpy(dref_item->header.type,"ferd",4);//大端模式存储
-
-	memcpy(&dref_item->header.version,DREF,sizeof(DREF));
+	strncpy(dref_item->header.type,"dref",4);
+	DEBUG_LOG("(unsigned char*)&dref_item->header.version - (unsigned char*)dref_item = %d\n",\
+			   (unsigned char*)&dref_item->header.version - (unsigned char*)dref_item);
+	memcpy((unsigned char*)dref_item + 8,DREF,sizeof(DREF));
 
 	return dref_item;
 	
@@ -595,15 +670,19 @@ stsd_box*  AudioSampleEntry(unsigned char channelCount,unsigned short sampleRate
 		   	(sampleRate) & 0xFF,
 		   	0x00, 0x00
 		};
-	AudioSampleEntry_t* mp4a_item = (AudioSampleEntry_t*)malloc(sizeof(AudioSampleEntry_t));
+
+	
+	unsigned int mp4a_length = sizeof(AudioSampleEntry_t);
+	DEBUG_LOG("mp4a_item malloc size(%d) sizeof(mp4a[]) = %d\n",mp4a_length,sizeof(mp4a));
+	AudioSampleEntry_t* mp4a_item = (AudioSampleEntry_t*)malloc(mp4a_length);
 	if(NULL == mp4a_item )
 		return NULL;
 	
-	memset(mp4a_item ,0,sizeof(AudioSampleEntry_t));
-	mp4a_item->sample_entry.header.size = t_htonl(sizeof(AudioSampleEntry_t));
-	strncpy(mp4a_item->sample_entry.header.type,"a4pm",4);//大端模式存储
+	memset(mp4a_item ,0,mp4a_length);
+	mp4a_item->sample_entry.header.size = t_htonl(mp4a_length);
+	strncpy(mp4a_item->sample_entry.header.type,"mp4a",4);
 
-	memcpy(&mp4a_item->sample_entry.reserved  ,mp4a,sizeof(mp4a));
+	memcpy((unsigned char*)mp4a_item + 8  ,mp4a,sizeof(mp4a));
 
 	
 	const unsigned char esds[] = {
@@ -631,13 +710,14 @@ stsd_box*  AudioSampleEntry(unsigned char channelCount,unsigned short sampleRate
             0x40, // Object type indication
             0x05, // Stream type
             0x00, 	// Up stream
-            0x01,//Reserved
+            0x00,0x00,0x01,	//Reserved
             0x00,0x01,0xF4,0x00, //Max bitrate (12800)
             0x00,0x00,0x00,0x00, //Avg bitrate
 
 			/***Audio Decoder Specific Info***/
 			0x05,	//tag
 			0x33,	//tag_size  后边51(0x33)个字节
+			0x00,0x00,   //reserved
 			0x00,0x00,0x00,0x02, //Audio object type ; 02 - AAC LC or backwards compatible HE-AAC (Most realworld AAC falls in one of these cases) 
 			0x00,0x00,0x00,0x04, //Sampling freq index
 			0x00,0x00,0x00,0x00, //Sampling freq
@@ -647,8 +727,10 @@ stsd_box*  AudioSampleEntry(unsigned char channelCount,unsigned short sampleRate
 			0x00,0x00,0x00,0x00, //Ext sampling freq
 			0x00, //Frame length flag
 			0x00, //Depends on core coder
+			0x00,0x00,   //reserved
 			0x00,0x00,0x00,0x00, //Core coder delay
 			0x00, //Extension flag
+			0x00,0x00,0x00, //reserved
 			0x00,0x00,0x00,0x00, //Layer nr
 			0x00,0x00,0x00,0x00, //Num of subframe
 			0x00,0x00,0x00,0x00, //Layer length
@@ -657,21 +739,26 @@ stsd_box*  AudioSampleEntry(unsigned char channelCount,unsigned short sampleRate
 			0x00, //aac spectral data resilience flag
 			0x00, //Extension flag3
 			
-		};
-	esds_box*esds_item = (esds_box*)malloc(sizeof(esds_box));
+		};  
+
+	unsigned int esds_length = sizeof(esds_box);
+	DEBUG_LOG("esds_item malloc size(%d) sizeof(esds[]) = %d\n",esds_length,sizeof(esds));
+	esds_box*esds_item = (esds_box*)malloc(esds_length);
 	if(NULL == esds_item)
 	{
 		free(mp4a_item);
 		return NULL;
 	}
 		
-	memset(esds_item,0,sizeof(esds_box));
-	esds_item->header.size = t_htonl(sizeof(esds_box));
-	strncpy(esds_item->header.type,"sdse",4);//大端模式存储
-	memcpy(&esds_item->header.version,esds,sizeof(esds));
+	memset(esds_item,0,esds_length);
+	esds_item->header.size = t_htonl(esds_length);
+	strncpy(esds_item->header.type,"esds",4);
+	memcpy((unsigned char*)esds_item + 8,esds,sizeof(esds));
 
 	//构造 stsd box
-	int stsd_box_size = sizeof(mp4a_item) + sizeof(esds_item); 
+	//DEBUG_LOG("sizeof(stsd_box) = %d\n",sizeof(stsd_box));
+	int stsd_box_size = sizeof(stsd_box) + mp4a_length + esds_length; 
+	DEBUG_LOG("stsd_item malloc size(%d)\n",stsd_box_size);
 	stsd_box* stsd_item = (stsd_box*)malloc(stsd_box_size);
 	if(NULL == stsd_item)
 	{
@@ -680,10 +767,13 @@ stsd_box*  AudioSampleEntry(unsigned char channelCount,unsigned short sampleRate
 		return NULL;
 	}
 
-	memcpy(stsd_item->Sample,mp4a_item,sizeof(AudioSampleEntry_t));
-	memcpy(stsd_item->Sample + sizeof(AudioSampleEntry_t),esds_item,sizeof(esds_box));
+	memcpy((unsigned char*)stsd_item + sizeof(FullBoxHeader_t),mp4a_item,mp4a_length);
+	unsigned int tmp = (unsigned char*)stsd_item + sizeof(FullBoxHeader_t) + mp4a_length + esds_length - (unsigned char*)stsd_item;
+	DEBUG_LOG("tmp = %d\n",tmp);
+	memcpy((unsigned char*)stsd_item + sizeof(FullBoxHeader_t) + mp4a_length,esds_item,esds_length);
 	//修正 stsd box长度
 	stsd_item->header.size = t_htonl(stsd_box_size);
+	strncpy(stsd_item->header.type,"stsd",4);
 
 	
 	free(esds_item);
@@ -711,7 +801,7 @@ stsd_box* VideoSampleEntry(unsigned short width,unsigned short height)
             0x00, 0x48, 0x00, 0x00, // horizresolution: 4 bytes 常数
             0x00, 0x48, 0x00, 0x00, // vertresolution: 4 bytes 常数
             0x00, 0x00, 0x00, 0x00, // reserved: 4 bytes 保留位
-            0x00, 0x01, // frame_count      
+            0x00, 0x00, 0x00, 0x01, // frame_count 原本只有2字节(0x00, 0x01)，字节无法对齐的     
             //frame_count表明多少帧压缩视频存储在每个样本。默认是1,每样一帧;它可能超过1每个样本的多个帧数
             0x04, //    strlen compressorname: 32 bytes        
             //32个8 bit    第一个8bit表示长度,剩下31个8bit表示内容
@@ -734,36 +824,96 @@ stsd_box* VideoSampleEntry(unsigned short width,unsigned short height)
 		ERROR_LOG("avcc_box_info not init !\n");
 		return NULL;
 	}
+	if(avcc_item->buf_length != t_ntohl(avcc_item->avcc_buf->header.size))
+	{
+		free(avcc_item->avcc_buf);
+		ERROR_LOG("avcc_item buf err! avcc_item->buf_length(%d) t_ntohl(avcc_item->avcc_buf->header.size)(%d)\n",\
+					avcc_item->buf_length,t_ntohl(avcc_item->avcc_buf->header.size));
+		return NULL;
+	}
+	print_char_array("avcc",(unsigned char*)avcc_item->avcc_buf,avcc_item->buf_length);
+	
+	unsigned int box_length = 0;//申请的内存长度
+	unsigned int write_len = 0;//实际写入的长度，用于安全校验
+	//---avc1----------------------------------------------
+	box_length = sizeof(avc1_box) + t_ntohl(avcc_item->avcc_buf->header.size);//pasp box暂未实现	
+	avc1_box*avc1_item = (avc1_box*)malloc(box_length);
+	if(NULL == avc1_item)
+	{
+		ERROR_LOG("malloc failed !\n");
+		free(avcc_item->avcc_buf);
+		return NULL;
+	}
+	memset(avc1_item,0,box_length);
+	
+	avc1_item->sample_entry.header.size = t_htonl(box_length);
+	DEBUG_LOG("avc1_item->sample_entry.header.size  = %x\n",avc1_item->sample_entry.header.size);
+	strncpy(avc1_item->sample_entry.header.type,"avc1",4);
+	//拷贝AVC1数组
+	DEBUG_LOG("sizeof(avc1_item->sample_entry) = %d",sizeof(avc1_item->sample_entry.header));
+	memcpy((unsigned char*)avc1_item + sizeof(avc1_item->sample_entry.header),AVC1,sizeof(AVC1));
 
-	int box_length = sizeof(stsd_box) +\
-					 sizeof(BoxHeader_t) + sizeof(AVC1) +\
-					 avcc_item->buf_length;//pasp box暂未实现
-					 
+	//拷贝 avcc box
+	memcpy((unsigned char*)avc1_item + sizeof(avc1_box),avcc_item->avcc_buf,avcc_item->buf_length);
+
+	write_len = sizeof(avc1_box) + avcc_item->buf_length;
+	if(box_length != write_len)
+	{
+		ERROR_LOG("avc1_item malloc size(%d) but write sizeof(%d)\n",box_length,write_len);
+		free(avcc_item->avcc_buf);
+		free(avc1_item);
+		return NULL;
+	}
+	
+	print_char_array("avc1",(unsigned char*)avc1_item,box_length);
+
+
+	//---stsd----------------------------------------------
+	box_length += sizeof(stsd_box) + 4;	// +4是为了吻合解析器的解析格式
+	DEBUG_LOG("stsd_item malloc size(%d)\n",box_length);				 
 	stsd_box* stsd_item  = (stsd_box*)malloc(box_length);
 	if(NULL == stsd_item)
+	{
+		free(avcc_item->avcc_buf);
+		free(avc1_item);
+		ERROR_LOG("malloc failed!\n");
 		return NULL;
+	}
+		
 	memset(stsd_item,0,box_length);
 
-	//填充stsd 
+	int offset = 0;
+	//填充stsd 头部 
 	stsd_item->header.size = t_htonl(box_length);
-	strncpy(stsd_item->header.type,"dsts",4);
+	strncpy(stsd_item->header.type,"stsd",4);
 
 	//偏移到avc1的位置
-	int offset = sizeof(stsd_box);
-	VideoSampleEntry_t*avc1_item = (VideoSampleEntry_t*)((unsigned char*)stsd_item + offset);  
-	box_length = sizeof(VideoSampleEntry_t);
+	offset = sizeof(stsd_box)+4;//+4是为了吻合解析器的解析格式
+	DEBUG_LOG("sizeof(stsd_box) = %d offset = %d\n",sizeof(stsd_box),offset);
+	//填充AVC1 box (已经包含了avcc box)
+	memcpy((unsigned char*)stsd_item + offset,avc1_item,t_ntohl(avc1_item->sample_entry.header.size));
+	write_len = offset + t_ntohl(avc1_item->sample_entry.header.size);
+	if(box_length != write_len)
+	{	free(avcc_item->avcc_buf);
+		free(avc1_item);
+		free(stsd_item);
 	
-	//填充avc1的头部
-	avc1_item->sample_entry.header.size = t_htonl(box_length);
-	strncpy(avc1_item->sample_entry.header.type,"1cva",4);
+		ERROR_LOG("stsd_item malloc size(%d) but write sizeof(%d)\n",box_length,write_len);
+		return NULL;
+	}
+	//DEBUG***************************************
+	print_char_array("stsd",(unsigned char*)stsd_item,box_length);
 
-	//填充AVC1 body部分
-	offset += sizeof(BoxHeader_t); 
-	memcpy((unsigned char*)stsd_item + offset,AVC1,sizeof(AVC1));
+	//********************************************
+		
 
-	//填充AVCC 
-	offset += sizeof(AVC1);
-	memcpy((unsigned char*)stsd_item + offset,avcc_item->avcc_buf ,avcc_item->buf_length);
+	//释放已经无用的空间
+
+	free(avcc_item->avcc_buf);
+	avcc_item->avcc_buf = NULL;
+	avcc_item->buf_length = 0;
+	free(avc1_item);
+	avc1_item = NULL;
 	
 	return stsd_item;
 		
@@ -807,6 +957,7 @@ stts_box*	stts_box_init(void)
             0x00, 0x00, 0x00, 0x00 // entry_count     0个索引
         	};
 	unsigned int box_length = sizeof(STTS)+sizeof(FullBoxHeader_t)-4;//-4:减去 version(0) + flags
+	DEBUG_LOG("stts_item malloc size(%d) sizeof(STTS) = %d\n",box_length,sizeof(STTS));
 	stts_box* stts_item = (stts_box*)malloc(box_length);
 	if(NULL == stts_item)
 	{
@@ -816,6 +967,7 @@ stts_box*	stts_box_init(void)
 	memset(stts_item,0,box_length);
 	stts_item->header.size = t_htonl(box_length);
 	strncpy(stts_item->header.type,"stts",4);
+
 	memcpy(&stts_item->header.version,STTS,sizeof(STTS));
 
 	return stts_item;
@@ -825,13 +977,14 @@ stts_box*	stts_box_init(void)
 //和stts box的初始化一样的
 stsc_box*	stsc_box_init()
 {
-
+	
 	stsc_box *stsc_item = (stsc_box *)stts_box_init();
 	if(NULL == stsc_item)
 	{
 		ERROR_LOG("stsc box init failed!\n");
 		return NULL;
 	}
+	strncpy(stsc_item->header.type,"stsc",4);
 	return stsc_item;
 }
 
@@ -845,6 +998,7 @@ stsz_box* stsz_box_init(void)
         	};
 			
 	unsigned int box_length = sizeof(STSZ)+sizeof(FullBoxHeader_t)-4;//-4:减去 version(0) + flags
+	DEBUG_LOG("stsz_item malloc size(%d) sizeof(STSZ) = %d\n",box_length,sizeof(STSZ));
 	stsz_box* stsz_item = (stsz_box*)malloc(box_length);
 	if(NULL == stsz_item)
 	{
@@ -853,7 +1007,8 @@ stsz_box* stsz_box_init(void)
 	}
 	memset(stsz_item,0,box_length);
 	stsz_item->header.size = t_htonl(box_length);
-	strncpy(stsz_item->header.type,"zsts",4);
+	strncpy(stsz_item->header.type,"stsz",4);
+
 	memcpy(&stsz_item->header.version,STSZ,sizeof(STSZ));
 
 	return stsz_item;
@@ -869,6 +1024,7 @@ stco_box*	stco_box_init()
 		ERROR_LOG("stsc box init failed!\n");
 		return NULL;
 	}
+	strncpy(stco_item->header.type,"stco",4);
 	return stco_item;
 }
 	
@@ -876,6 +1032,7 @@ stco_box*	stco_box_init()
 
 int url_box_init()
 {
+	//dref里边的初始化数组直接包含了url，如有问题，后期修改
 	return 0; //不需要
 }
 int	urn_box_init()
@@ -894,11 +1051,188 @@ mp4a_box* mp4a_box_init()
 		//包括 esds box
 }
 
+/*
+	判断nalu 包的类型
+	返回：
+		NALU_SPS  0
+		NALU_PPS  1
+		NALU_I    2
+		NALU_P    3
+		NALU_SET  4
+		
+*/
+#if 1
+#define 	NALU_SPS  0
+#define		NALU_PPS  1
+#define		NALU_I    2
+#define		NALU_P    3
+#define		NALU_SET  4
+int NaluType(unsigned char* naluData)
+{
+	int index = -1; 
+     
+    if(naluData[0]==0 && naluData[1]==0 && naluData[2]==0 && naluData[3]==1 && naluData[4]==0x67)
+    {
+        index = NALU_SPS;
+        printf("%s[%d]====NALU_SPS\n",__FUNCTION__,__LINE__);
+    }
+
+    if(naluData[0]==0 && naluData[1]==0 && naluData[2]==0 && naluData[3]==1 && naluData[4]==0x68)
+    {
+        index = NALU_PPS;
+        printf("%s[%d]====NALU_PPS\n",__FUNCTION__,__LINE__);
+    }
+    if(naluData[0]==0 && naluData[1]==0 && naluData[2]==0 && naluData[3]==1 && naluData[4]==0x65)
+    {
+        index = NALU_I;
+        printf("%s[%d]====NALU_I\n",__FUNCTION__,__LINE__);
+    }
+    if(naluData[0]==0 && naluData[1]==0 && naluData[2]==0 && naluData[3]==1 && naluData[4]==0x61)
+    {
+        index = NALU_P;
+        printf("%s[%d]====NALU_P\n",__FUNCTION__,__LINE__);
+    }
+    if(naluData[0]==0 && naluData[1]==0 && naluData[2]==0 && naluData[3]==1 && naluData[4]==0x6)
+    {
+        index = NALU_SET;
+        printf("%s[%d]====NALU_SET\n",__FUNCTION__,__LINE__);
+    }
+
+	return index;
+}
+
+#endif
 
 /*
 	 该函数只能用来接收 SPS PPS SEI 类型的 NALU
 	 并且该nalu需要用4字节的数据大小头替换原有的起始头，并且数据大小为big-endian格式
 */
+/************************************************************************************************************
+**									avvC Box  海思的h264sps套不上
+
+configurationVersion			1		0x4D	版本;
+AVCProfileIndication			1		0x00	10进制的77 对照profile的情况 知道是main profile;
+profile_compatibility			1		0x2A	一般0
+AVCLevelIndication				1		0x96	10进制的31
+lengthSizeMinusOne				1		0x35	1111 1111	前面6位为reserved，后面2位（0b11）为：lengthSizeMinusOne，表示3.
+												那么用来表示size的字节就有3 + 1 = 4个
+
+numOfSequenceParameterSets		1		0xC0	1110 0001	前面3位是reserved, 后面5bit是numOfSequenceParameterSets，表示有1个sps.
+sequenceParameterSetLength		2			
+SPS 							23				SPS的长度就只包括该部分数据长度
+
+numOfPictureParameterSets		1			有1个pps
+pictureParameterSetLength		2			pictureParameterSetLength
+PPS 							4			PPS的内容
+
+************************************************************************************************************/
+//手动输入的NALU头信息
+unsigned char IDR_NALU[] = {
+0x00,0x00,0x00,0x01, 0x67,0x4D,0x00,0x2A, 0x96,0x35,0xC0,0xF0, 0x04,0x4F,0xCB,0x37,
+0x01,0x01,0x01,0x02, 0x00,0x00,0x00,0x01, 0x68,0xEE,0x3C,0x80, 0x00,0x00,0x00,0x01,
+0x06,0xE5,0x01,0x2E, 0x80/*后边省略 I帧数据*/
+};
+unsigned char my_SPS[] = {0x4D,0x00,0x2A, 0x96,0x35,0xC0,0xF0, 0x04,0x4F,0xCB,0x37,0x01,0x01,0x01,0x02};
+
+unsigned char my_PPS[] = {0xEE,0x3C,0x80};
+
+#if 1
+avcc_box_info_t *	avcc_box_init(void)
+{
+
+
+	//计算 PPS的数据长度
+	DEBUG_LOG("start avcc_box_init..\n");
+	unsigned char * SPS_data_start_POS = my_SPS;		//记录 sps数据的起始位置
+	unsigned char * SPS_data_end_POS = my_SPS + sizeof(my_SPS)/sizeof(my_SPS[0]);	//记录 sps数据的结束位置
+	unsigned int SPS_len = sizeof(my_SPS);	//	记录SPS的实际长度
+	DEBUG_LOG("SPS_len =  %d\n",SPS_len);
+
+	unsigned char * PPS_data_start_POS = my_PPS;
+	unsigned char * PPS_data_end_POS = my_PPS + sizeof(my_PPS)/sizeof(my_PPS[0]);
+	unsigned int PPS_len = sizeof(my_PPS);
+	DEBUG_LOG("PPS_len =  %d\n",PPS_len);
+
+	
+
+
+	#if 1 //和 海思的PPS数据头内容套不上
+	unsigned int offset = 5;//略过前5个字节 略过SPS的识别头（0x00 00 00 01 67），5字节
+	unsigned char configurationVersion =  1;	//naluData[offset+0];  // configurationVersion
+	unsigned char AVCProfileIndication =  0x4D;	//naluData[offset+1];  // AVCProfileIndication
+	unsigned char profile_compatibility = 0;	//naluData[offset+2];  // profile_compatibility
+	unsigned char AVCLevelIndication  =   0x1F;	//naluData[offset+3];  // AVCLevelIndication
+
+		
+	unsigned char reserved6 = 0xfc; //二进制：1111 1100
+	unsigned char _naluLengthSize = (IDR_NALU[offset+4] & 3) + 1;  // lengthSizeMinusOne   上一个avc 长度
+	unsigned char reserved_6_lengthSizeMinusOne_2 = reserved6|_naluLengthSize;//reserved_6_lengthSizeMinusOne_2
+
+	unsigned char reserved3 = 0xe0;//二进制：1110 0000
+
+	unsigned char spsCount = 1;
+	unsigned char reserved_3_numOfSequenceParameterSets_5 = reserved3|spsCount;  
+	DEBUG_LOG("start avcc_box_init..02\n");
+	
+	if (spsCount == 0 || spsCount > 1) 
+	{
+		ERROR_LOG("Invalid H264 SPS count(%d)\n",spsCount);
+        return NULL;
+    }
+	
+		//sps内容:my_SPS数组
+		//一般就一个sps
+		// Notice: Nalu without startcode header (00 00 00 01)
+		unsigned short sps_len = SPS_len;	//(unsigned short)naluData[offset];
+		unsigned short sequenceParameterSetLength = t_htons(sps_len);  // sequenceParameterSetLength
+
+		
+		//PPS内容:my_PPS数组
+		//一般也就1个pps
+		unsigned char ppsCount = 1;			  // numOfPictureParameterSets
+		unsigned char numOfPictureParameterSets = ppsCount;
+		unsigned short pictureParameterSetLength = t_htons(PPS_len); //pictureParameterSetLength
+ 
+		
+
+		unsigned int box_len =	sizeof(avcc_box) + PPS_len + SPS_len;
+		DEBUG_LOG("avcc_item malloc size(%d)\n",box_len);
+		avcc_box* avcc_item = (avcc_box*)malloc(box_len);
+		if(NULL == avcc_item)
+		{
+			ERROR_LOG("malloc failed !\n");
+			return NULL;
+		}
+		memset(avcc_item,0,box_len);
+
+		avcc_item->header.size = t_htonl(box_len);
+		strncpy(avcc_item->header.type,"avcC",4);
+		avcc_item->configurationVersion = configurationVersion;
+		avcc_item->AVCProfileIndication = AVCProfileIndication;
+		avcc_item->profile_compatibility = profile_compatibility;
+		avcc_item->AVCLevelIndication = AVCLevelIndication;
+		avcc_item->reserved_6_lengthSizeMinusOne_2 = reserved_6_lengthSizeMinusOne_2;
+		
+		//SPS
+		avcc_item->reserved_3_numOfSequenceParameterSets_5 = reserved_3_numOfSequenceParameterSets_5;	
+		memcpy(&avcc_item->sequenceParameterSetLength,&sequenceParameterSetLength,sizeof(sequenceParameterSetLength));
+		memcpy((unsigned char*)&avcc_item->sequenceParameterSetLength + 2,my_SPS,SPS_len);
+	
+		//PPS
+		avcc_item->numOfPictureParameterSets = ppsCount;
+		memcpy(&avcc_item->pictureParameterSetLength,&PPS_len,sizeof(PPS_len));
+		memcpy((unsigned char*)&avcc_item->pictureParameterSetLength + 2,my_PPS,PPS_len);
+	
+		#endif
+		DEBUG_LOG("start avcc_box_init..06\n");
+		avcc_box_info.avcc_buf = avcc_item;
+		avcc_box_info.buf_length = box_len;
+	return &avcc_box_info;
+	
+}
+
+#else
+
 avcc_box_info_t *	avcc_box_init(unsigned char* naluData, int naluSize)
 {
 
@@ -907,12 +1241,68 @@ avcc_box_info_t *	avcc_box_init(unsigned char* naluData, int naluSize)
 		ERROR_LOG("Illegal parameter!\n");
 		return NULL;
 	}
+
+	//计算 PPS的数据长度
+	unsigned char * SPS_data_start_POS = NULL;//记录 sps数据的起始位置
+	unsigned char * SPS_data_end_POS = NULL;//记录 sps数据的结束位置
+	unsigned int SPS_len = 0;	//	记录SPS的实际长度
+
+	unsigned char * PPS_data_start_POS = NULL;
+	unsigned char * PPS_data_end_POS = NULL;
+	unsigned int PPS_len = 0;
 	
-	unsigned int offset = 5;//略过前5个字节
-	unsigned char configurationVersion =  naluData[offset+0];  // configurationVersion
-	unsigned char AVCProfileIndication =  naluData[offset+1];  // AVCProfileIndication
-	unsigned char profile_compatibility = naluData[offset+2];  // profile_compatibility
-	unsigned char AVCLevelIndication  =   naluData[offset+3];  // AVCLevelIndication
+	int i = 0;
+	for(i = 0;i < naluSize;i += sizeof(int))
+	{
+		int type = NaluType(naluData + i);
+
+		if(NALU_SPS == type)//SPS NALU
+		{
+			SPS_data_start_POS = naluData + i;
+		}
+		else if(NALU_PPS == type)//PPS NALU
+		{
+			PPS_data_start_POS = naluData + i;
+			SPS_data_end_POS = 	 naluData + i;
+		}
+		else if(NALU_SET == type)//SET NALU
+		{
+			PPS_data_end_POS = naluData + i;
+		}
+		else
+		{
+			// do noting
+		}
+
+		//找到 SPS PPS的起始结束位置 并 计算出长度，才能退出
+		if(NULL != SPS_data_start_POS && NULL != SPS_data_end_POS &&\
+			NULL != PPS_data_end_POS && NULL != PPS_data_start_POS)
+		{
+			
+			SPS_len = SPS_data_end_POS - SPS_data_start_POS;
+			PPS_len = PPS_data_end_POS - PPS_data_start_POS;
+			DEBUG_LOG("SPS PPS length calculate success!  SPS_len(%d) PPS_len(%d)\n ",SPS_len,PPS_len);
+			break;
+		}
+		
+		
+	}
+
+	if(i >= naluSize)//没有成功计算出 PPS的实际数据长度
+	{
+		ERROR_LOG("calculate PPS length failed!\n");
+		return NULL;
+	}
+
+	
+
+
+	#if 1 //和 海思的PPS数据头内容套不上
+	unsigned int offset = 5;//略过前5个字节 略过SPS的识别头（0x00 00 00 01 67），5字节
+	unsigned char configurationVersion =  1;	//naluData[offset+0];  // configurationVersion
+	unsigned char AVCProfileIndication =  0x4D;	//naluData[offset+1];  // AVCProfileIndication
+	unsigned char profile_compatibility = 0;	//naluData[offset+2];  // profile_compatibility
+	unsigned char AVCLevelIndication  =   0x1F;	//naluData[offset+3];  // AVCLevelIndication
 
 		
 	unsigned char reserved6 = 0xfc; //二进制：1111 1100
@@ -920,7 +1310,8 @@ avcc_box_info_t *	avcc_box_init(unsigned char* naluData, int naluSize)
 	unsigned char reserved_6_lengthSizeMinusOne_2 = reserved6|_naluLengthSize;//reserved_6_lengthSizeMinusOne_2
 
 	unsigned char reserved3 = 0xe0;//二进制：1110 0000
-	unsigned char spsCount = naluData[offset+5] & 31; // numOfSequenceParameterSets
+	//unsigned char spsCount = naluData[offset+5] & 31; // numOfSequenceParameterSets  有问题,和海思的不匹配
+	unsigned char spsCount = 1;
 	unsigned char reserved_3_numOfSequenceParameterSets_5 = reserved3|spsCount;  
 	
 	offset = offset + 6;
@@ -932,7 +1323,7 @@ avcc_box_info_t *	avcc_box_init(unsigned char* naluData, int naluSize)
 
 	
 	//一般就一个sps
-		unsigned short sps_len = (unsigned short)naluData[offset];
+		unsigned short sps_len = SPS_len;	//(unsigned short)naluData[offset];
 		unsigned short sequenceParameterSetLength = t_htons(sps_len);  // sequenceParameterSetLength
         offset += 2;
 
@@ -951,7 +1342,8 @@ avcc_box_info_t *	avcc_box_init(unsigned char* naluData, int naluSize)
 			return NULL;
 		}
 		memset(sps,0,sps_len);
-		memcpy(sps,naluData + offset,sps_len);
+		memcpy(sps,SPS_data_start_POS,sps_len);
+		//memcpy(sps,naluData + offset,sps_len);
 		offset += sps_len;
 
 		
@@ -1012,9 +1404,9 @@ avcc_box_info_t *	avcc_box_init(unsigned char* naluData, int naluSize)
             this._onMediaInfo(mi);
         }
        */
-
-	
-		unsigned char ppsCount = naluData[offset];  // numOfPictureParameterSets
+		
+		//填充 PPS
+		unsigned char ppsCount = 1;	//naluData[offset];  // numOfPictureParameterSets
 		unsigned char numOfPictureParameterSets = ppsCount;
         if (ppsCount == 0 || ppsCount > 1) 
 		{
@@ -1025,7 +1417,7 @@ avcc_box_info_t *	avcc_box_init(unsigned char* naluData, int naluSize)
         offset++;
 
 		//一般也就1个pps
-        unsigned int pps_len = (unsigned short)naluData[offset]; 
+        unsigned int pps_len = PPS_len; //(unsigned short)naluData[offset]; 
 		unsigned short pictureParameterSetLength = t_htons(pps_len); // pictureParameterSetLength
         offset += 2;
 
@@ -1043,12 +1435,14 @@ avcc_box_info_t *	avcc_box_init(unsigned char* naluData, int naluSize)
 			return NULL;
 		}
 		memset(pps,0,pps_len);
-		memcpy(pps,naluData + offset,pps_len);
+		memcpy(pps,PPS_data_start_POS,pps_len);
+		
+		//memcpy(pps,naluData + offset,pps_len);
 	
         // pps is useless for extracting video information
-        offset += pps_len;
+        //offset += pps_len;
 
-		unsigned int box_len = sizeof(BoxHeader_t) + offset - 5;
+		unsigned int box_len =	sizeof(avcc_box) + PPS_len + SPS_len;//sizeof(BoxHeader_t) + offset - 5;
 		avcc_box* avcc_item = (avcc_box*)malloc(box_len);
 		if(NULL == avcc_item)
 		{
@@ -1075,12 +1469,31 @@ avcc_box_info_t *	avcc_box_init(unsigned char* naluData, int naluSize)
 		memcpy(&avcc_item->pictureParameterSetLength,&pps_len,sizeof(pps_len));
 		memcpy(avcc_item->pictureParameterSetNALUnit,pps,pps_len);
 		free(pps);
+		#endif
 		
 		avcc_box_info.avcc_buf = avcc_item;
 		avcc_box_info.buf_length = box_len;
 	return &avcc_box_info;
 	
 }
+
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

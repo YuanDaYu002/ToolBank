@@ -1,3 +1,6 @@
+
+
+
 #ifndef _FMP4_INTERFACE_H
 #define _FMP4_INTERFACE_H
 #include <stdio.h>
@@ -13,6 +16,7 @@ FILE* Fmp4_encode_init(char * file_name,unsigned int Vframe_rate,unsigned int Af
 
 
 
+
 /***STEP 2********************************************************************************
 功能：接收 sps/pps NALU 包，设置 avcC box参数，
 参数：naluData：nalu包数据首地址 
@@ -20,7 +24,8 @@ FILE* Fmp4_encode_init(char * file_name,unsigned int Vframe_rate,unsigned int Af
 返回值：成功：0 失败 -1;
 注意：该接口内部会对naluData自动偏移5个字节长度
 *******************************************************************************************/
-int sps_pps_parameter_set(unsigned char* naluData, int naluSize);
+//int sps_pps_parameter_set(unsigned char* naluData, int naluSize);
+
 
 
 /***n*(STEP3-1)*****************************************************************************
@@ -53,5 +58,8 @@ int Fmp4_encode_exit(void);
 
 
 #endif
+
+
+
 
 

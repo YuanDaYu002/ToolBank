@@ -1,6 +1,12 @@
 
 #ifndef _BOX_H
 #define _BOX_H
+#pragma pack(4)
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 
 typedef unsigned int Fmp4TrackId; //轨道ID
 
@@ -13,13 +19,13 @@ typedef unsigned int Fmp4TrackId; //轨道ID
 typedef struct _BoxHeader_t
 {
 	unsigned int size;	//BOX size
-	char 		type[4];	//BOX type
+	unsigned char type[4];	//BOX type
 }BoxHeader_t;
 
 typedef struct _FullBoxHeader_t
 {
 	unsigned int size;	//BOX size
-	char 		type[4];	//BOX type
+	unsigned char type[4];	//BOX type
 	char     version;	//BOX 版本，0或1，一般为0 ，该套代码只支持 0
 	char 	flags[3];	//保留位
 	
@@ -32,25 +38,25 @@ typedef struct FileTypeBox_t
 	BoxHeader_t 	  header;
 	unsigned int  major_brand;		//4字节的品牌名称 默认值：iso6
    	unsigned int  minor_version;	//4字节的版本号
-   	unsigned int compatible_brands[0];//内容4字节的兼容品牌数组
+   //	unsigned int compatible_brands[0];//内容4字节的兼容品牌数组
 }ftyp_box;
 
 typedef struct MovieBox_t
 {
 	BoxHeader_t 	  header;
-	char 		child_box[0]; //0长数组，占位
+	//char 		child_box[0]; //0长数组，占位
 }moov_box;
 
 typedef struct MovieFragmentBox_t
 {
 	BoxHeader_t 	  header;
-	char 		child_box[0]; //0长数组，占位
+	//char 		child_box[0]; //0长数组，占位
 }moof_box;
 
 typedef struct MediaDataBox_t
 {
 	BoxHeader_t 	  header;
-	char 			  data[0];	//真实数据
+	//char 			  data[0];	//真实数据
 }mdat_box;
 
 
@@ -80,7 +86,7 @@ typedef struct MovieHeaderBox_t
 typedef struct  TrackBox_t
 {
 	BoxHeader_t header;
-	char 		child_box[0]; //0长数组，占位
+	//char 		child_box[0]; //0长数组，占位
 	
 }trak_box;
 
@@ -92,7 +98,7 @@ typedef struct  TrackBox_t
 typedef struct MovieExtendsBox_t
 {
 	FullBoxHeader_t header;
-	char 			child_box[0]; //0长数组，占位
+	//char 			child_box[0]; //0长数组，占位
 }mvex_box;
 
 typedef struct MovieFragmentHeaderBox_t
@@ -104,7 +110,7 @@ typedef struct MovieFragmentHeaderBox_t
 typedef struct TrackFragmentBox_t
 {
 	BoxHeader_t 	header;
-	char 			child_box[0]; //0长数组，占位
+	//char 			child_box[0]; //0长数组，占位
 }traf_box;
 	
 
@@ -133,7 +139,7 @@ typedef struct TrackHeaderBox_t
 typedef struct MediaBox_t
 {
 	BoxHeader_t 	header;
-	char 			child_box[0]; //0长数组，占位
+	//char 			child_box[0]; //0长数组，占位
 }mdia_box;
 
 typedef struct TrackExtendsBox_t
@@ -176,7 +182,7 @@ typedef struct SampleDependencyTypeBox_t
       unsigned int(2) sample_is_depended_on;
       unsigned int(2) sample_has_redundancy;
 	} */
-	char placeholder[0];//占位，实例化后自己实现
+	//char placeholder[0];//占位，实例化后自己实现
 	
 
 }sdtp_box;
@@ -200,7 +206,7 @@ typedef struct TrackFragmentRunBox_t
         unsigned int sample_composition_time_offset; 
    }[ sample_count ]
    */
-   unsigned char placeholder[0];
+   //unsigned char placeholder[0];
 
 }trun_box;
 
@@ -235,14 +241,14 @@ typedef struct HandlerReferenceBox_t
 	unsigned int  		reserved[3]; //3*4保留位
 
 	//string   name;
-	char name[0];//name,长度不定以'\0'结尾 ,占位
+	//char name[0];//name,长度不定以'\0'结尾 ,占位
 	
 }hdlr_box;
 
 typedef struct MediaInformationBox_t
 {
 	BoxHeader_t 	header;
-	char 			child_box[0]; //0长数组，占位
+	//char 			child_box[0]; //0长数组，占位
 }minf_box;
 
 /****五级BOX*********************************************************/
@@ -266,14 +272,14 @@ typedef struct SoundMediaHeaderBox_t
 typedef struct DataInformationBox_t
 {
 	BoxHeader_t 	header;  
-	char 			child_box[0]; //0长数组，占位
+	//char 			child_box[0]; //0长数组，占位
 
 }dinf_box;
 
 typedef struct SampleTableBox_t
 {
 	BoxHeader_t 	header;
-	char 			child_box[0]; //0长数组，占位
+	//char 			child_box[0]; //0长数组，占位
 }stbl_box;
 
 
@@ -285,7 +291,7 @@ typedef struct DataReferenceBox_t
 	/*for (i=1; i • entry_count; i++) {
 	DataEntryBox(entry_version, entry_flags) data_entry; }
 	*/
-	unsigned char opcolor[0];//占位
+	//unsigned char opcolor[0];//占位
 }dref_box;
 
 
@@ -303,7 +309,20 @@ typedef struct _HintSampleEntry_t
 	unsigned char data [];
 }HintSampleEntry_t;
 
-// Visual(video) Sequences
+// Visual(video) Sequences 
+//有两种格式
+#if USE_AVC1_VERSION_1
+typedef struct _VideoSampleEntry_t
+{
+	BoxHeader_t 				header;
+	unsigned short 				width;
+	unsigned short 				height;
+	unsigned int 				horizresolution; // 72 dpi 
+	unsigned int 				vertresolution; // 72 dpi
+	char 						compressorname [32];
+	
+}VideoSampleEntry_t ;//就是 avc1_box，本代码采用avc1_box
+#else
 typedef struct _VideoSampleEntry_t
 {
 	SampleEntry_t 				sample_entry;
@@ -317,12 +336,15 @@ typedef struct _VideoSampleEntry_t
 
 	unsigned int 				vertresolution; // 72 dpi
 	unsigned int 				reserved_B;
-	unsigned short 				frame_count;  //frame_count表明多少帧压缩视频存储在每个样本。默认是1,每样一帧;它可能超过1每个样本的多个帧数
+	//unsigned short 				frame_count;  //frame_count表明多少帧压缩视频存储在每个样本。默认是1,每样一帧;它可能超过1每个样本的多个帧数
+	unsigned int 				frame_count;
 	char 						compressorname [32];
 	unsigned short 				depth;
 	short 						pre_defined2;
 	
 }VideoSampleEntry_t ;//就是 avc1_box，本代码采用avc1_box
+
+#endif
 
 
 
@@ -344,7 +366,7 @@ typedef struct _AudioSampleEntry_t
 typedef struct SampleDescriptionBox_t 
 {
 	FullBoxHeader_t 	header;
-	char Sample[0];	//分Visual(video)/Audio/Hint sample;依据 hdlr box 中的handler_type来确定 
+	//char Sample[0];	//分Visual(video)/Audio/Hint sample;依据 hdlr box 中的handler_type来确定 
 	
 }stsd_box;
 
@@ -359,7 +381,7 @@ typedef struct TimeToSampleBox_t
       unsigned int(32)  sample_count;
       unsigned int(32)  sample_delta;
    	}*/
-   	unsigned int sample_count_sample_delta[0];
+   //	unsigned int sample_count_sample_delta[0];
    	
 
 }stts_box;
@@ -375,7 +397,7 @@ typedef struct SampleToChunkBox_t
       unsigned int(32)  sample_count;
       unsigned int(32)  sample_delta;
    	}*/
-   	unsigned int sample_count_sample_delta[0];
+   //	unsigned int sample_count_sample_delta[0];
    	
 
 }stsc_box;
@@ -391,7 +413,7 @@ typedef struct SampleSizeBox_t
 		for (i=1; i < sample_count; i++){
 	      unsigned int(32)  entry_size;
 	} }*/
-	unsigned int entry_size[0];		//占位处理
+	//unsigned int entry_size[0];		//占位处理
 }stsz_box;
 
 typedef struct ChunkOffsetBox_t
@@ -405,7 +427,7 @@ typedef struct ChunkOffsetBox_t
       unsigned int(32)  sample_count;
       unsigned int(32)  sample_delta;
    	}*/
-   	unsigned int sample_count_sample_delta[0];
+  // 	unsigned int sample_count_sample_delta[0];
    	
 
 }stco_box;
@@ -415,13 +437,13 @@ typedef struct ChunkOffsetBox_t
 typedef struct DataEntryUrlBox_t
 {
 	FullBoxHeader_t 	header;
-	char 				location[0];
+//	char 				location[0];
 }url_box;
 
 typedef struct DataEntryUrnBox_t
 {
 	FullBoxHeader_t 	header;
-	char 				location[0];
+	//char 				location[0];
 }urn_box;
 
 /**
@@ -449,14 +471,14 @@ typedef struct AVCDecoderConfigurationRecord_t
 	unsigned char 		reserved_3_numOfSequenceParameterSets_5;//替代上边注释掉的两个变量
 	//for (i=0; i< numOfSequenceParameterSets; i++) {	//(sps_size + sps)数组
 	  unsigned short sequenceParameterSetLength ;		//sps长度
-	  unsigned char sequenceParameterSetNALUnit[0];		//sps内容
+	  //unsigned char sequenceParameterSetNALUnit[0];		//sps内容
 	//}
 	
 	
 	unsigned char numOfPictureParameterSets;		//pps个数，一般为1
 	//for (i=0; i< numOfPictureParameterSets; i++) {	(pps_size + pps)数组
 	  unsigned short pictureParameterSetLength;		//pps长度
-	  unsigned char pictureParameterSetNALUnit[0]; 	//pps内容
+	  //unsigned char pictureParameterSetNALUnit[0]; 	//pps内容
 	//}
 
 }avcc_box;
@@ -485,8 +507,11 @@ typedef struct MPEG4AudioSampleEntry_t
 }mp4a_box;
 */
 
-#define avc1_box VideoSampleEntry_t
-#define mp4a_box AudioSampleEntry_t
+//#define avc1_box VideoSampleEntry_t
+typedef VideoSampleEntry_t avc1_box;
+
+//#define mp4a_box AudioSampleEntry_t
+typedef AudioSampleEntry_t mp4a_box;
 
 
 
@@ -514,13 +539,15 @@ typedef struct  ESDescriptorBox_t
 	unsigned char 	tag_size2;
 	unsigned char 	Object_type_indication;	//MPEG-4 audio (0X40)
 	unsigned char 	Stream_type;
-	unsigned char	Reserved;
+	unsigned char 	Up_stream;
+	unsigned char	Reserved[3];
 	unsigned int	Max_bitrate;
 	unsigned int 	Avg_bitrate;
 	
 	//Audio Decoder Specific Info
 	unsigned char	Tag3;		//5 (0X05)
 	unsigned char	Tag_size3;	//5 (0X05)
+	unsigned char	reserved02[2];
 	unsigned int	Audio_object_type;		//2 (0X00000002)
 	unsigned int	Sampling_freq_index;	//4 (0X00000004)
 	unsigned int	Sampling_freq;			//(0X00000000)
@@ -530,15 +557,19 @@ typedef struct  ESDescriptorBox_t
 	unsigned int	Ext_sampling_freq;
 	unsigned char	Frame_length_flag;
 	unsigned char	Depends_on_core_coder;
+	unsigned char	reserved03_1[2];
 	unsigned int 	Core_coder_delay; 
 	unsigned char 	Extension_flag; 
+	unsigned char	reserved03_2[3];
 	unsigned int 	Layer_nr; 			//(0X00000000) 
 	unsigned int 	Num_of_subframe;	//(0X00000000) 
 	unsigned int 	Layer_length;		//(0X00000000) 
 	unsigned char	aac_section_data_resilience_flag;	//(0X00) 
 	unsigned char	aac_scale_factor_data_resilience_flag; //(0X00)
-	
-	
+	unsigned char	aac_spectral_data_resilience_flag;
+	unsigned char	Extension_flag3;
+
+
 }esds_box;
 
 
@@ -565,7 +596,7 @@ typedef struct _trak_video_t
 				lve5 vmhd_box *vmhdBox;
 				lve5 dinf_box *dinfBox;
 					lve6 dref_box *drefBox;
-						lve7 url_box *urlBox; 
+						//lve7 url_box *urlBox; //未使用
 				lve5 stbl_box *stblBox;
 					lve6 stsd_box *stsdBox;
 						//lve7 avc1_box *avc1Box; 		//归属在stsd_box中一起初始化了
@@ -588,7 +619,7 @@ typedef struct _trak_audio_t
 				lve5 smhd_box *smhdBox;
 				lve5 dinf_box *dinfBox;
 					lve6 dref_box *drefBox;
-						lve7 url_box *url_box;
+						//lve7 url_box *url_box;	//	暂时不使用
 				lve5 stbl_box *stblBox;
 					lve6 stsd_box *stsdBox;
 						//lve7 mp4a_box *mp4aBox;		//归属在stsd_box中一起初始化了
@@ -695,7 +726,7 @@ trak_box* trak_box_init(unsigned int box_length);
 mvex_box*	mvex_box_init(unsigned int box_length);
 mfhd_box* mfhd_box_init();
 traf_box*	traf_box_init(unsigned int box_length);
-tkhd_box* tkhd_box_init(unsigned int trackId,unsigned int duration,unsigned int width,unsigned int height);
+tkhd_box* tkhd_box_init(unsigned int trackId,unsigned int duration,unsigned short width,unsigned short height);
 mdia_box* mdia_box_init(unsigned int box_length);
 trex_box*	trex_box_init(unsigned int trackId);
 tfhd_box*	tfhd_box_init(unsigned int trackId);
@@ -726,11 +757,16 @@ int url_box_init();
 int	urn_box_init();
 avc1_box* avc1_box_init();
 mp4a_box* mp4a_box_init();
-avcc_box_info_t *	avcc_box_init(unsigned char* naluData, int naluSize);
+//avcc_box_info_t *	avcc_box_init(unsigned char* naluData, int naluSize);
+avcc_box_info_t *	avcc_box_init(void);
 
 
 
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif
+
 
