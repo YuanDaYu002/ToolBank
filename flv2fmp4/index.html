@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>直接播放flv</title>
+    <style>
+        * {
+            padding: 0px;
+            margin: 0px;
+        }
+        
+        html,
+        body {
+            height: 100%;
+            width: 100%;
+        }
+        
+        body #con {
+            width: 1000px;
+            height: 400px;
+            line-height: 400px;
+            text-align: center;
+            background-color: aquamarine;
+            /*border-radius: 10px;*/
+            position: relative;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 18px;
+        }
+        
+        div {
+            height: 100%;
+            width: 100%;
+        }
+        
+        #con #drop {
+            width: 50%;
+            float: left;
+        }
+        
+        #con video {
+            width: 50%;
+            height: 100%;
+            float: left;
+        }
+        
+        #input {
+            width: 100%;
+            height: 40px;
+            position: absolute;
+            bottom: -40px;
+            background-color: #fff;
+            border: 1px solid #6f6f6f;
+            line-height: 40px;
+            text-align: left;
+            box-sizing: border-box;
+        }
+        
+        #input input {
+            position: relative;
+            left: 0px;
+            top: 0px;
+            height: 34px;
+            width: 80%;
+            outline: none;
+            border: none;
+            padding: 5px;
+            font-size: 18px;
+            box-sizing: border-box;
+            float: left;
+        }
+        
+        #btn_load {
+            width: 20%;
+            float: left;
+            text-align: center;
+            height: 100%;
+            background-color: rgb(18, 120, 189);
+            color: white;
+            user-select: false;
+            cursor: default;
+        }
+    </style>
+    <script>
+    		var vcode='avc1.640020';
+    		var acode='mp4a.40.2'
+        var mimecode = 'video/mp4; codecs=';
+        var sb = null;
+        var mes = null;
+    </script>
+</head>
+
+<body>
+    <div id='con'>
+        <div id='drop'>将flv文件拖入此处</div>
+        <video autoplay="autoplay" controls="controls" style="background-color: #000000;"></video>
+        <div id='input'>
+            <input id='videosrc' type="text" placeholder="请输入flv地址">
+            <div id='btn_load'>加载</div>
+        </div>
+    </div>
+    <a href=""></a>
+    <!--<video autoplay="autoplay" width="500px" height="400px" controls="controls" style="background-color: #000000;"></video>-->
+    <script type="text/javascript" src="bound.js"></script>
+    <script>
+    		// console.log(flvParse);
+        var video = document.querySelector('video');
+        var resultU8t=null;
+        var _this = this;
+        var req = null;
+        var dropbox = document.querySelector('body #con div');
+        var btn_load = document.querySelector("#btn_load");
+        var temp_u8a = new Uint8Array();
+        var headers = new window.Headers();
+        var _requestAbort = false;
+        var init=false;
+        var error=false;
+        btn_load.addEventListener("click", function() {
+            req = new Request(document.querySelector("#videosrc").value, {
+                headers: headers,
+                method: 'GET',
+                cache: 'default',
+                mode: "cors"
+            });
+
+
+            fetch(req).then(function(response) {
+                //  typeof(response.body)==ReadableStream
+                var reader = response.body.getReader();
+                return _this.readr(reader);
+            })
+        })
+        var temp_arr = []
+
+        function readr(reader) {
+            return reader.read().then(function(result) {
+
+                var chunk = result.value; ///Uint8Array
+                if(error){
+                    return reader.cancel();
+                }
+                if (result.done) {
+                    console.log("this's over");
+                    return reader.cancel();
+                } else if (_requestAbort) {
+                    _requestAbort = false;
+                    return reader.cancel();
+                }
+                var temp = new Uint8Array(temp_u8a.length + chunk.length);
+                temp.set(temp_u8a, 0);
+                temp.set(chunk, temp_u8a.length);
+                var offest = flvParse.setFlv(temp);
+                temp_u8a = temp.slice(offest);
+                console.log('offest', offest, '数据长度', temp.length)
+                return _this.readr(reader);
+            })
+        }
+
+
+        dropbox.addEventListener("dragover", function(e) {
+            e.stopPropagation();
+            e.preventDefault();
+        }, false);
+        dropbox.addEventListener("drop", function(e) {
+            e.stopPropagation();
+            e.preventDefault();
+            var reader = new FileReader();
+            reader.addEventListener("load", processflv, false);
+            reader.readAsArrayBuffer(e.dataTransfer.files[0]);
+        }, false);
+
+        function processflv(e) {
+            var buffer = e.target.result;
+            var uint8 = new Uint8Array(buffer);
+            //将拖拽入的flv视频转成了2进制数组
+            flvParse.setFlv(uint8); //仍入转换器
+            // var flv2mp4 = new flv2fmp4();
+            // flv2mp4.setflv(buffer);
+            // flv2mp4.onInitSegment = onInitSegment.bind(_this);
+            // flv2mp4.onMediaSegment = onMediaSegment.bind(_this);
+        }
+		function onMediaInfo(a,b){
+			if(mes==null){
+	        		mes=	new MediaSource;
+		        mes.addEventListener('sourceopen', sourceOpen);
+                mes.addEventListener('sourceended',function(e){
+                    console.log('mes',e,mes)
+                })
+				if(b.hasVideo&&b.hasAudio){
+					mimecode+='"'+(a.videoCodec||vcode)+','+(a.audioCodec||acode)+'"'
+				}
+				if(b.hasVideo&&!b.hasAudio){
+					mimecode+='"'+a.videoCodec||vcode+'"'
+				}
+				if(!b.hasVideo&&b.hasAudio){
+					mimecode+='"'+a.audioCodec||acode+'"'
+				}
+		        function sourceOpen() {
+		            sb = mes.addSourceBuffer(mimecode);
+		            sb.addEventListener('updateend', () => {
+		                doappendbuff();
+                        console.log('加载完成');
+		            });
+		            sb.addEventListener('error', (e) => {
+                        console.log(e,'报错',JSON.stringify(e))
+                        error=true;
+		            });
+		            if(temp_arr.length>0){
+		            	doappendbuff();
+		            }
+		        }
+		        video.src = URL.createObjectURL(mes);
+        		}
+		}
+		
+		/**
+		 * 多次操作只有delay秒后才会触发
+		 */
+		function debounce (fn, delay){
+		    var timer = null;
+		    return function(...args){
+		        clearTimeout(timer);
+		        timer = setTimeout(() => fn.apply(this, args), delay);
+		    }
+		}
+		
+        function mp4Init(a,b) {
+        		resultU8t=new Uint8Array(a.length);
+        		resultU8t.set(a,0);
+            console.log('init', a);
+            temp_arr.unshift(a.buffer);
+            // console.log("moov"+URL.createObjectURL(new Blob([a.buffer])));
+//          var hrefa=document.createElement('a');
+//          hrefa.href=URL.createObjectURL(new Blob([a.buffer]));
+//          hrefa.innerHTML='moov下载';
+//          hrefa.style.display='block';
+//          document.body.appendChild(hrefa);
+            doappendbuff();
+            if(!init)init=true;
+        }
+		function outMp4(){
+			var hrefa=document.createElement('a');
+			hrefa.style.display='block';
+            hrefa.href=URL.createObjectURL(new Blob([resultU8t.buffer]));
+            hrefa.innerHTML='mp4下载';
+            document.body.appendChild(hrefa);
+		}
+        function onMediaSegment(a) {
+            console.log('moof', a);
+//          var temp=new Uint8Array(resultU8t.length+a.length);
+//          temp.set(resultU8t,0);
+//          temp.set(a,resultU8t.length);
+//          
+//          resultU8t=new Uint8Array(temp.length);
+//          resultU8t.set(temp,0);
+            
+//          end();
+            temp_arr.push(a.buffer);
+            if(!init)return;
+            doappendbuff();
+        }
+
+        function doappendbuff() {
+            if (sb&&!sb.updating && temp_arr.length > 0) {
+                console.log('开始添加');
+                sb.appendBuffer(temp_arr.shift());
+            } else {
+                console.log('sourcebuff还在忙碌');
+            }
+            if(!sb){
+            	 console.log('sb还没准备好');
+            }
+
+        }
+        var end=debounce(outMp4,2000);
+    </script>
+</body>
+
+</html>

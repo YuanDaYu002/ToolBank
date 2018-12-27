@@ -1,0 +1,24 @@
+libfaac_la-huffdata.lo: huffdata.c huffdata.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/lib/gcc/arm-linux-uclibceabi/6.3.0/include/stdint.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/stdint.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/features.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/uClibc_config.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/sys/cdefs.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/wchar.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/wordsize.h
+
+huffdata.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/lib/gcc/arm-linux-uclibceabi/6.3.0/include/stdint.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/stdint.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/features.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/uClibc_config.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/sys/cdefs.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/wchar.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/wordsize.h:

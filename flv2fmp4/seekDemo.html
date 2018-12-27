@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>跳转demo</title>
+    <style>
+        * {
+            padding: 0px;
+            margin: 0px;
+        }
+        
+        html,
+        body {
+            height: 100%;
+            width: 100%;
+        }
+        
+        body #con {
+            width: 1000px;
+            height: 400px;
+            line-height: 400px;
+            text-align: center;
+            background-color: aquamarine;
+            /*border-radius: 10px;*/
+            position: relative;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 18px;
+        }
+        
+        div {
+            height: 100%;
+            width: 100%;
+        }
+        
+        #con #drop {
+            width: 50%;
+            float: left;
+        }
+        
+        #con video {
+            width: 50%;
+            height: 100%;
+            float: left;
+        }
+        
+        #input {
+            width: 100%;
+            height: 40px;
+            position: absolute;
+            bottom: -40px;
+            background-color: #fff;
+            border: 1px solid #6f6f6f;
+            line-height: 40px;
+            text-align: left;
+            box-sizing: border-box;
+        }
+        
+        #input input {
+            position: relative;
+            left: 0px;
+            top: 0px;
+            height: 34px;
+            width: 80%;
+            outline: none;
+            border: none;
+            padding: 5px;
+            font-size: 18px;
+            box-sizing: border-box;
+            float: left;
+        }
+        
+        #btn_load {
+            width: 20%;
+            float: left;
+            text-align: center;
+            height: 100%;
+            background-color: rgb(18, 120, 189);
+            color: white;
+            user-select: false;
+            cursor: default;
+        }
+    </style>
+    <script>
+        let mimecode = 'video/mp4; codecs="avc1.640020,mp4a.40.2"';
+        let sb = null;
+        let mes = new MediaSource;
+        mes.addEventListener('sourceopen', sourceOpen);
+
+        function sourceOpen() {
+            sb = mes.addSourceBuffer(mimecode);
+            sb.addEventListener('updateend', () => {
+                doappendbuff();
+//              console.log(mes)
+            });
+        }
+    </script>
+</head>
+
+<body>
+    <div id='con'>
+        <div id='drop'>将flv文件拖入此处</div>
+        <video autoplay="autoplay" controls="controls" style="background-color: #000000;"></video>
+        <div id='input'>
+            <input id='videosrc' type="text" placeholder="请输入flv地址">
+            <div id='btn_load'>加载</div>
+        </div>
+    </div>
+    <a href=""></a>
+    <!--<video autoplay="autoplay" width="500px" height="400px" controls="controls" style="background-color: #000000;"></video>-->
+    <script type="text/javascript" src="bound.js"></script>
+    <script>
+        var video = document.querySelector('video');
+        video.src = URL.createObjectURL(mes);
+        var _this = this;
+        var req = null;
+        var dropbox = document.querySelector('body #con div');
+        var btn_load = document.querySelector("#btn_load");
+        var temp_u8a = new Uint8Array();
+        var headers = new window.Headers();
+        var _requestAbort = false;
+        var video_url = '';
+        btn_load.addEventListener("click", function() {
+            video_url = document.querySelector("#videosrc").value;
+            req = new Request(document.querySelector("#videosrc").value, {
+                headers: headers,
+                method: 'GET',
+                cache: 'default',
+                mode: "cors"
+            });
+
+
+            fetch(req).then(function(response) {
+                //  typeof(response.body)==ReadableStream
+                var reader = response.body.getReader();
+                return _this.readr(reader);
+            })
+        })
+        var temp_arr = []
+		var byte_time=0;
+        function readr(reader) {
+            return reader.read().then(function(result) {
+
+                let chunk = result.value; ///Uint8Array
+
+                if (result.done) {
+                    console.log("this's over");
+                    return reader.cancel();
+                } else if (_requestAbort) {
+                    _requestAbort = false;
+                    temp_arr=[];
+                    temp_u8a=new Uint8Array();
+                    return reader.cancel();
+                }
+                let temp = new Uint8Array(temp_u8a.length + chunk.length);
+                temp.set(temp_u8a, 0);
+                temp.set(chunk, temp_u8a.length);
+                let offest = flvParse.setFlv(temp,byte_time);
+                temp_u8a = temp.slice(offest);
+//              console.log('offest', offest, '数据长度', temp.length)
+                return _this.readr(reader);
+            })
+        }
+		var byte_location=-1;
+		
+        function seek(time) {
+        		_requestAbort=true;
+            if (mediainfo) {
+                for(var i=0;i<mediainfo.keyframesIndex.times.length;i++){
+                		if(time*1000<mediainfo.keyframesIndex.times[i]){
+                			if(i==0)
+                			{
+                				byte_time=0.1;
+                				byte_location=mediainfo.keyframesIndex.filepositions[0];
+                			}else{
+                				byte_time=mediainfo.keyframesIndex.times[i-1]
+                				byte_location=mediainfo.keyframesIndex.filepositions[i-1];
+                				break;
+                			}
+                		}
+                }
+            }
+//          return;
+			
+//			flvParse.seek(byte_time);
+            req = new Request(video_url+"&start="+byte_location, {
+                headers: headers,
+                method: 'GET',
+                cache: 'default',
+                mode: "cors"
+            });
+
+
+            fetch(req).then(function(response) {
+                //  typeof(response.body)==ReadableStream
+                var reader = response.body.getReader();
+                return _this.readr(reader);
+            })
+
+        }
+
+        function seekCallBack(time) {
+//      		if(sb.buffered.length>0)
+//          console.log('回调时间', time,sb.buffered.start(sb.buffered.length-1));
+            video.currentTime=time/1000;
+        }
+        var mediainfo = null;
+
+        function onMediaInfo(mi) {
+            mediainfo = mi;
+        }
+        dropbox.addEventListener("dragover", function(e) {
+            e.stopPropagation();
+            e.preventDefault();
+        }, false);
+        dropbox.addEventListener("drop", function(e) {
+            e.stopPropagation();
+            e.preventDefault();
+            var reader = new FileReader();
+            reader.addEventListener("load", processflv, false);
+            reader.readAsArrayBuffer(e.dataTransfer.files[0]);
+        }, false);
+
+        function processflv(e) {
+            var buffer = e.target.result;
+            var uint8 = new Uint8Array(buffer);
+            //将拖拽入的flv视频转成了2进制数组
+            flvParse.setFlv(uint8); //仍入转换器
+            // var flv2mp4 = new flv2fmp4();
+            // flv2mp4.setflv(buffer);
+            // flv2mp4.onInitSegment = onInitSegment.bind(_this);
+            // flv2mp4.onMediaSegment = onMediaSegment.bind(_this);
+        }
+
+        function mp4Init(a) {
+            console.log('init', a);
+            temp_arr.push(a.buffer);
+            doappendbuff();
+            setTimeout(seek,2000,106)
+//          seek(106);
+
+        }
+
+        function onMediaSegment(a) {
+//          console.log('moof', a);
+            temp_arr.push(a.buffer);
+            doappendbuff();
+        }
+
+        function doappendbuff() {
+        		
+            if (!sb.updating && temp_arr.length > 0) {
+                console.log('开始添加');
+                sb.appendBuffer(temp_arr.shift());
+//              if(sb.buffered.length>0)
+//              console.log(sb.buffered.start(sb.buffered.length-1))
+            } else {
+                console.log('sourcebuff还在忙碌');
+//              if(sb.buffered.length>0)
+//              console.log(sb.buffered.start(sb.buffered.length-1))
+            }
+
+        }
+    </script>
+</body>
+
+</html>
