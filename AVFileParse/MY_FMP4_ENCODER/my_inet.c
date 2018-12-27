@@ -76,3 +76,33 @@ unsigned short int t_ntohs(unsigned short int n)
        // 若本机为小端，网络数据转换成小端再返回
        return checkCPUendian() ? n : BigLittleSwap16(n);
 }
+
+
+
+// 模拟ntohll函数，网络字节序转本机字节序
+unsigned long long t_ntohll(unsigned long long val)
+  {
+     
+   if(0 == checkCPUendian())//小端机器
+      {
+         return (((unsigned long long )t_htonl((int)((val << 32) >> 32))) << 32) | (unsigned int)t_htonl((int)(val >> 32));
+     }
+     else 
+     {
+         return val;
+     }
+ }
+
+ // 模拟htonll函数，本机字节序转网络字节序
+ unsigned long long t_htonll(unsigned long long val)
+  {
+     if (0 == checkCPUendian())//小端机器
+      {
+         return (((unsigned long long )t_htonl((int)((val << 32) >> 32))) << 32) | (unsigned int)t_htonl((int)(val >> 32));
+     }
+     else 
+     {
+         return val;
+     }
+ }
+

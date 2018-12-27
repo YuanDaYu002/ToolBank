@@ -18,6 +18,11 @@ unsigned short int t_htons(unsigned short int h);
 // 模拟ntohs函数，网络字节序转本机字节序
 unsigned short int t_ntohs(unsigned short int n);
 
+// 模拟ntohll函数，网络字节序转本机字节序
+unsigned long long t_ntohll(unsigned long long val);
+
+// 模拟htonll函数，本机字节序转网络字节序
+unsigned long long t_htonll(unsigned long long val);
 
 
 

@@ -9,6 +9,46 @@
 #define HAVE_VIDEO 1
 #define HAVE_AUDIO 0
 
+/**************************************************************************
+生成的fmp4文件直接保存到文件/内存
+1.jffs2 文件系统在flash使用率比较高时写文件速度很慢
+2.会造成NorFlash多次擦写，影响寿命
+3.在liteOS下尝试建立ramfs文件系统，但不稳定，写大文件照样延迟大，
+	并且还会报内存不足，华为官方不推荐使用。
+
+*************************************************************************/	
+typedef enum 
+{
+	SAVE_IN_MEMORY = 1,  //保存到内存
+	SAVE_IN_FILE = 2	//保存到文件
+}file_mode_e;
+
+
+//"内存存储模式"描述信息
+typedef struct _buf_mode_t
+{
+	unsigned char	*buf_start; //最终存储内存的起始地址
+	unsigned int 	buf_size;
+	unsigned int 	w_offset;	//写指针的偏移量，最终值就是实际文件的长度
+}buf_mode_t;
+
+//"文件存储模式"描述信息
+typedef struct _file_mode_t
+{
+	char * file_name; //最终存储文件的名字
+}file_mode_t;
+/********************************************************
+采用"内存存储模式" 请初始化 buf_mode ，将file_mode置为NULL
+采用"文件存储模式" 请初始化 file_mode，将buf_mode置为NULL
+注意：至少初始化一个，两个都初始化默认采用 buf_mode
+********************************************************/
+typedef struct _fmp4_out_info_t
+{
+	buf_mode_t 		buf_mode; 		//"内存存储模式"
+	file_mode_t		file_mode;		//"文件存储模式"
+}fmp4_out_info_t;
+
+
 
 /*================START=====================================================
 以下结构用来记录fmp4文件各个box距文件开头的位置偏移
@@ -107,15 +147,30 @@ fmp4_file_lable_t fmp4_file_lable = {0};
 	{\
 		ERROR_LOG("fwrite file failed!\n");\
 		fclose(stream);\
-		return NULL;\
+		return -1;\
 	}\
 }while(0)
 
+/*共用了之前的接口，当out_mode == SAVE_IN_MEMORY 时，stream参数无效*/
 #define fwrite_box(ptr,size,nmemb,stream,ret) 	do{\
 	if(NULL == ptr)\
-		return NULL;\
-	ret = fwrite (ptr,size,nmemb,stream );\
-	is_equal(ret, (size*nmemb),stream);\
+		return -1;\
+	if(out_mode == SAVE_IN_FILE )\
+	{\
+		ret = fwrite (ptr,size,nmemb,stream );\
+		is_equal(ret, (size*nmemb),stream);\
+	}\
+	else\
+	{\
+		if(out_info.buf_mode.w_offset + size*nmemb > out_info.buf_mode.buf_size)\
+		{\
+			ERROR_LOG("over write! fmp4 out put file memory is pool!\n");\
+			return -1;\
+		}\
+		memcpy(out_info.buf_mode.buf_start + out_info.buf_mode.w_offset,(unsigned char*)ptr,size*nmemb);\
+		out_info.buf_mode.w_offset += size*nmemb;\
+		ret = size*nmemb;\
+	}\
 	free(ptr);\
 	ptr = NULL;\
 }while(0)
@@ -158,10 +213,14 @@ n*(moof + mdat)模式
 44100HZ AAC数据采样   1024采样点为1帧， 16位宽下 能容纳1s的容量
 (1024*2)*(44100/1024) = 88200 Bytes
 */
-#define REMUX_AUDIO_BUF_SIZE  (88200)
+//#define REMUX_AUDIO_BUF_SIZE  (88200)
 
-//无法确定1s的h264数据有多大，给个大概值
-#define REMUX_VIDEO_BUF_SIZE  (1024*1024) 
+//16KHZ采样率下： 16000HZ   *2Bytes = 32000Bytes
+#define REMUX_AUDIO_BUF_SIZE  (34000)
+
+
+//无法确定1s的h264数据有多大，给个大概值  30s大概3M    。。。。1S大概3*1024KB/30 = 102.4KB
+#define REMUX_VIDEO_BUF_SIZE  (1024*300) 
 
 /*audio trun box里边允许容纳的最大samples（一帧一个sample）数，
 该值不能小于传入audio数据的帧率，音视频混合器 remux 是按照1S的数据量来打包的
@@ -177,12 +236,13 @@ H264: MAX ： 30帧/s
 #define TRUN_VIDEO_MAX_SAMPLES (40)
 
 
+
 //写入mdat box中的每个sample的描述信息（放在trun box中）
 typedef struct _sample_info_t
 {
-	char* 			sample_pos;//该sample在buf中的位置
-	unsigned int	sample_len;//该sample的长度
-	trun_sample_t   trun_sample; //trun box 的sample数组元素信息
+	char* 				sample_pos;		//该sample在buf中的位置
+	unsigned int		sample_len;		//该sample的长度
+	trun_sample_t   	trun_sample; 	//trun box 的sample数组元素信息
 }sample_info_t;
 
 /*
@@ -190,16 +250,16 @@ typedef struct _sample_info_t
 */
 typedef struct _buf_remux_video_t
 {
-	char*	remux_video_buf;	//buf的首地址
-	char*	write_pos;			//写指针的位置
-	char*	read_pos;			//读指针位置
-	int 	frame_count;		//buf 中已经存储的帧数量
-	int 	frame_rate; 		//外部传入视频数据的原本帧率
+	unsigned char*	remux_video_buf;	//buf的首地址
+	unsigned char*	write_pos;			//写指针的位置
+	unsigned char*	read_pos;			//读指针位置
+	unsigned int 	frame_count;		//buf 中已经存储的帧数量
+	unsigned int 	frame_rate; 		//外部传入视频数据的原本帧率
 	sample_info_t sample_info[TRUN_VIDEO_MAX_SAMPLES]; //buffer 中 video sample（帧）的信息数组指针
-	unsigned char write_index;	//sample_info数组的即将要写的下标
+	unsigned int write_index;	//sample_info数组的即将要写的下标
 	unsigned char read_index;	//sample_info数组的即将要读的下标
 	unsigned char need_remux;	//buf已经缓冲好1S的samples,需要将完整的 moof+mdat box 写入到文件
-	unsigned char reserved;
+	unsigned char reserved[2];
 	pthread_mutex_t mut;		//读写锁
 //	pthread_cond_t remux_ready;
 }buf_remux_video_t;

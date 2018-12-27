@@ -5,16 +5,40 @@
 #define _FMP4_INTERFACE_H
 #include <stdio.h>
 
+
+//"内存存储模式"描述信息
+typedef struct _buf_mode_t
+{
+	unsigned char	*buf_start; //最终存储内存的起始地址
+	unsigned int 	buf_size;
+	unsigned int 	w_offset;	//写指针的偏移量，最终值就是实际文件的长度
+}buf_mode_t;
+
+//"文件存储模式"描述信息
+typedef struct _file_mode_t
+{
+	char * file_name; //最终存储文件的名字（liteos需要绝对路径，否则创建文件会失败）
+}file_mode_t;
+/********************************************************
+采用"内存存储模式" 请初始化 buf_mode ，将file_mode置为空
+采用"文件存储模式" 请初始化 file_mode，将buf_mode置为空
+注意：至少初始化一个，两个都初始化默认采用 buf_mode
+********************************************************/
+typedef struct _fmp4_out_info_t
+{
+	buf_mode_t 		buf_mode; 		//"内存存储模式"
+	file_mode_t		file_mode;		//"文件存储模式"
+}fmp4_out_info_t;
+
 /***STEP 1********************************************************************************
 功能：fmp4编码初始化
-参数：file_name ： 要生成的 fmp4 文件名（liteos需要绝对路径，否则创建文件会失败）
+参数：out_info ： 要生成的 fmp4 文件存储模式描述信息
+					
 	  Vframe_rate: 转入视频的原始帧率
 	  Aframe_rate：传入音频的原始帧率
-返回值：文件描述符
+返回值：成功 ： 0  失败：-1
 *******************************************************************************************/
-FILE* Fmp4_encode_init(char * file_name,unsigned int Vframe_rate,unsigned int Aframe_rate);
-
-
+int Fmp4_encode_init(fmp4_out_info_t * out_info,unsigned int Vframe_rate,unsigned int Aframe_rate);
 
 
 /***STEP 2********************************************************************************

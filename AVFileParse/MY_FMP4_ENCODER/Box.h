@@ -8,6 +8,13 @@ extern "C"
 #endif
 
 
+#define 	NALU_SPS  0
+#define		NALU_PPS  1
+#define		NALU_I    2
+#define		NALU_P    3
+#define		NALU_SET  4
+
+
 typedef unsigned int Fmp4TrackId; //轨道ID
 
 #define VIDEO 1
@@ -56,7 +63,7 @@ typedef struct MovieFragmentBox_t
 typedef struct MediaDataBox_t
 {
 	BoxHeader_t 	  header;
-	//char 			  data[0];	//真实数据
+	char 			  data[0];	//真实数据
 }mdat_box;
 
 
@@ -97,8 +104,8 @@ typedef struct  TrackBox_t
 */
 typedef struct MovieExtendsBox_t
 {
-	FullBoxHeader_t header;
-	//char 			child_box[0]; //0长数组，占位
+	BoxHeader_t header;
+	char 			child_box[0]; //0长数组，占位
 }mvex_box;
 
 typedef struct MovieFragmentHeaderBox_t
@@ -154,11 +161,12 @@ typedef struct TrackExtendsBox_t
 
 typedef struct TrackFragmentHeaderBox_t
 {
-	FullBoxHeader_t 	header;
-	unsigned int track_ID;
+	FullBoxHeader_t 		header;
+	unsigned int 			track_ID;
 	// all the following are optional fields 
 	unsigned long long 		base_data_offset; 
-	unsigned int 			sample_description_index; 
+	//unsigned long			base_data_offset; 
+	unsigned int 			sample_description_index; //多余了四个字节，与解析器对不上
 	unsigned int 			default_sample_duration; 
 	unsigned int 			default_sample_size; 
 	unsigned int 			default_sample_flags;
@@ -168,7 +176,8 @@ typedef struct TrackFragmentHeaderBox_t
 typedef struct TrackFragmentBaseMediaDecodeTimeBox_t
 {
 	FullBoxHeader_t 	header;
-	int  				baseMediaDecodeTime;
+	unsigned int  				baseMediaDecodeTime;//version = 1 时将为8字节，但本代码只支持 version = 0模式
+	
 	
 }tfdt_box;
 
@@ -191,7 +200,7 @@ typedef struct SampleDependencyTypeBox_t
 typedef struct TrackFragmentRunBox_t
 {
 	FullBoxHeader_t 	header;
-	unsigned int  		sample_count;
+	unsigned int  		sample_count; //样本的个数
 	
    // the following are optional fields ,以下是可选字段
    signed int  			data_offset;
@@ -336,8 +345,7 @@ typedef struct _VideoSampleEntry_t
 
 	unsigned int 				vertresolution; // 72 dpi
 	unsigned int 				reserved_B;
-	//unsigned short 				frame_count;  //frame_count表明多少帧压缩视频存储在每个样本。默认是1,每样一帧;它可能超过1每个样本的多个帧数
-	unsigned int 				frame_count;
+	unsigned short 				frame_count;  //frame_count表明多少帧压缩视频存储在每个样本。默认是1,每样一帧;它可能超过1每个样本的多个帧数
 	char 						compressorname [32];
 	unsigned short 				depth;
 	short 						pre_defined2;
@@ -366,7 +374,8 @@ typedef struct _AudioSampleEntry_t
 typedef struct SampleDescriptionBox_t 
 {
 	FullBoxHeader_t 	header;
-	//char Sample[0];	//分Visual(video)/Audio/Hint sample;依据 hdlr box 中的handler_type来确定 
+	unsigned int 		entry_count;
+	char Sample[0];	//分Visual(video)/Audio/Hint sample;依据 hdlr box 中的handler_type来确定 
 	
 }stsd_box;
 
@@ -471,14 +480,14 @@ typedef struct AVCDecoderConfigurationRecord_t
 	unsigned char 		reserved_3_numOfSequenceParameterSets_5;//替代上边注释掉的两个变量
 	//for (i=0; i< numOfSequenceParameterSets; i++) {	//(sps_size + sps)数组
 	  unsigned short sequenceParameterSetLength ;		//sps长度
-	  //unsigned char sequenceParameterSetNALUnit[0];		//sps内容
+	  unsigned char sequenceParameterSetNALUnit[0];		//sps内容
 	//}
 	
 	
 	unsigned char numOfPictureParameterSets;		//pps个数，一般为1
 	//for (i=0; i< numOfPictureParameterSets; i++) {	(pps_size + pps)数组
 	  unsigned short pictureParameterSetLength;		//pps长度
-	  //unsigned char pictureParameterSetNALUnit[0]; 	//pps内容
+	  unsigned char pictureParameterSetNALUnit[0]; 	//pps内容
 	//}
 
 }avcc_box;
@@ -759,6 +768,8 @@ avc1_box* avc1_box_init();
 mp4a_box* mp4a_box_init();
 //avcc_box_info_t *	avcc_box_init(unsigned char* naluData, int naluSize);
 avcc_box_info_t *	avcc_box_init(void);
+int FrameType(unsigned char* naluData);
+void print_char_array(unsigned char* box_name,unsigned char*start,unsigned int length);
 
 
 
@@ -768,5 +779,8 @@ avcc_box_info_t *	avcc_box_init(void);
 #endif
 
 #endif
+
+
+
 
 

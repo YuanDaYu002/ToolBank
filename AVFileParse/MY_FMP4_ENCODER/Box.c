@@ -211,9 +211,9 @@ mvex_box*	mvex_box_init(unsigned int box_length)
 	}
 	
 	memset(mvex_item,0,box_length);
-	mvex_item->header.size  = t_htonl(box_length);
+	mvex_item->header.size  = t_htonl(box_length);	
 	strncpy(mvex_item->header.type,"mvex",4);
-	mvex_item->header.version = 0;
+//	mvex_item->header.version = 0;
 
 	return mvex_item;
 
@@ -302,7 +302,7 @@ tkhd_box* tkhd_box_init(unsigned int trackId,unsigned int duration,unsigned shor
         };
 			
 		DEBUG_LOG("sizeof(TKHD) = %d\n",sizeof(TKHD));	
-		memcpy(tkhd_item + 8,TKHD,sizeof(TKHD));//+ 8 为了跳过 header 里边的size和type
+		memcpy((unsigned char*)tkhd_item + 8,TKHD,sizeof(TKHD));//+ 8 为了跳过 header 里边的size和type
 		return tkhd_item;
 	
 }
@@ -341,7 +341,7 @@ trex_box*	trex_box_init(unsigned int trackId)
 	memset(trex_item,0,sizeof(trex_box));
 	trex_item->header.size = t_htonl(sizeof(trex_box));
 	strncpy(trex_item->header.type,"trex",4);
-	
+	DEBUG_LOG("trackId = %d\n",trackId);
 	
 		 const unsigned char TREX[] = {
             0x00, 0x00, 0x00, 0x00, // version(0) + flags
@@ -354,7 +354,7 @@ trex_box*	trex_box_init(unsigned int trackId)
             0x00, 0x00, 0x00, 0x00, // default_sample_size
             0x00, 0x01, 0x00, 0x01 // default_sample_flags
         };
-	memcpy(trex_item + 8 ,TREX,sizeof(TREX));//+ 8为偏移过header的size和type 
+	memcpy((unsigned char*)trex_item + 8 ,TREX,sizeof(TREX));//+ 8为偏移过header的size和type 
 	return trex_item;
 	
 }
@@ -369,12 +369,24 @@ tfhd_box*	tfhd_box_init(unsigned int trackId)
 	tfhd_item->header.size = t_htonl(sizeof(tfhd_box));
 	strncpy(tfhd_item->header.type,"tfhd",4);
 
+	unsigned int default_sample_duration = 1000/15;
     const unsigned char TFHD[] = {
-        0x00, 0x00, 0x00, 0x00, // version(0) & flags
+        //0x00, 0x00, 0x00, 0x00, // version(0) & flags
+        0x00, 0x02, 0x00, 0x3B,	// version(0) & flags  //从每个视频的偏移位置从moof算起。
         (trackId >> 24) & 0xFF, // track_ID
         (trackId >> 16) & 0xFF,
         (trackId >> 8) & 0xFF,
-        (trackId) & 0xFF
+        (trackId) & 0xFF,
+        //后边为新增部分
+        0x00,0x00,0x00,0x00,	//base_data_offset
+        0x00,0x00,0x00,0x00,	//sample_description_index
+       	(default_sample_duration >> 24) & 0xFF, //default_sample_duration 按照1000/15毫秒来算的。单位ms,如若单位不对，后续修正
+        (default_sample_duration >> 16) & 0xFF,
+        (default_sample_duration >> 8) & 0xFF,
+        (default_sample_duration) & 0xFF,	
+        0x00,0x00,0x00,0x00, //default_sample_size
+        0x00,0x00,0x00,0x00, //default_sample_flags
+        
     	};
 	DEBUG_LOG("ziseof(TFHD) = %d\n",sizeof(TFHD));
 	memcpy((unsigned char*)tfhd_item + 8,TFHD,sizeof(TFHD));
@@ -385,15 +397,16 @@ tfhd_box*	tfhd_box_init(unsigned int trackId)
 
 tfdt_box*	tfdt_box_init(int baseMediaDecodeTime)
 {
-	DEBUG_LOG("tfdt_item malloc size(%d)\n",sizeof(tfdt_box));
-	tfdt_box* tfdt_item = (tfdt_box*)malloc(sizeof(tfdt_box));
+	unsigned int box_size = sizeof(tfdt_box);	
+	tfdt_box* tfdt_item = (tfdt_box*)malloc(box_size);
 	if(NULL == tfdt_item)
 		return NULL;
-	memset(tfdt_item,0,sizeof(tfdt_box));
-
-	tfdt_item->header.size = t_htonl(sizeof(tfdt_box));
+	memset(tfdt_item,0,box_size);
+	DEBUG_LOG("tfdt_item malloc size(%d)\n",box_size);
+	
+	tfdt_item->header.size = t_htonl(box_size);
 	strncpy(tfdt_item->header.type,"tfdt",4);
-
+	
     const unsigned char TFDT[] = {
 		    0x00, 0x00, 0x00, 0x00, // version(0) & flags
 		    (baseMediaDecodeTime >> 24) & 0xFF, // baseMediaDecodeTime: int32
@@ -434,8 +447,11 @@ trun_box*	trun_box_init()
 	memset(trun_item,0,sizeof(trun_box));
 	trun_item->header.size = t_htonl(sizeof(trun_box)); 
 	strncpy(trun_item->header.type,"trun",4);
+	unsigned char version_flags[] = {0x00, 0x00, 0x0F, 0x01};
+	memcpy((unsigned char*)trun_item + 8,version_flags,4);//初始化version & flags
+	
 
-	trun_item->sample_count = 0;
+	trun_item->sample_count = 0; //样本的个数，后续依据样本再动态修改
 	trun_item->first_sample_flags = 0;
 	
 	//后边的samples相关数据需要   音视频混合程序来实时填充，初始化不做处理
@@ -672,11 +688,15 @@ stsd_box*  AudioSampleEntry(unsigned char channelCount,unsigned short sampleRate
 		};
 
 	
-	unsigned int mp4a_length = sizeof(AudioSampleEntry_t);
+	unsigned int mp4a_length = sizeof(mp4a_box);
 	DEBUG_LOG("mp4a_item malloc size(%d) sizeof(mp4a[]) = %d\n",mp4a_length,sizeof(mp4a));
-	AudioSampleEntry_t* mp4a_item = (AudioSampleEntry_t*)malloc(mp4a_length);
+	mp4a_box* mp4a_item = (mp4a_box*)malloc(mp4a_length);
 	if(NULL == mp4a_item )
+	{
+		ERROR_LOG("malloc failed!\n");
 		return NULL;
+	}
+		
 	
 	memset(mp4a_item ,0,mp4a_length);
 	mp4a_item->sample_entry.header.size = t_htonl(mp4a_length);
@@ -757,7 +777,7 @@ stsd_box*  AudioSampleEntry(unsigned char channelCount,unsigned short sampleRate
 
 	//构造 stsd box
 	//DEBUG_LOG("sizeof(stsd_box) = %d\n",sizeof(stsd_box));
-	int stsd_box_size = sizeof(stsd_box) + mp4a_length + esds_length; 
+	int stsd_box_size = sizeof(stsd_box)+ 4 + mp4a_length + esds_length; //+4为和解析器格式兼容
 	DEBUG_LOG("stsd_item malloc size(%d)\n",stsd_box_size);
 	stsd_box* stsd_item = (stsd_box*)malloc(stsd_box_size);
 	if(NULL == stsd_item)
@@ -766,14 +786,25 @@ stsd_box*  AudioSampleEntry(unsigned char channelCount,unsigned short sampleRate
 		free(mp4a_item);
 		return NULL;
 	}
+	memset(stsd_item,0,stsd_box_size);
 
-	memcpy((unsigned char*)stsd_item + sizeof(FullBoxHeader_t),mp4a_item,mp4a_length);
+	unsigned int offset = sizeof(FullBoxHeader_t) + 4;//+4为和解析器格式兼容
+	//拷贝mp4a
+	memcpy((unsigned char*)stsd_item + offset,mp4a_item,mp4a_length);
 	unsigned int tmp = (unsigned char*)stsd_item + sizeof(FullBoxHeader_t) + mp4a_length + esds_length - (unsigned char*)stsd_item;
 	DEBUG_LOG("tmp = %d\n",tmp);
-	memcpy((unsigned char*)stsd_item + sizeof(FullBoxHeader_t) + mp4a_length,esds_item,esds_length);
+	
+	//拷贝 esds
+	offset += mp4a_length;
+	memcpy((unsigned char*)stsd_item + offset ,esds_item,esds_length);
+
+	
 	//修正 stsd box长度
 	stsd_item->header.size = t_htonl(stsd_box_size);
 	strncpy(stsd_item->header.type,"stsd",4);
+
+	//先修正 MP4a box的长度
+	mp4a_item->sample_entry.header.size = t_htonl(mp4a_length + esds_length);
 
 	
 	free(esds_item);
@@ -801,7 +832,7 @@ stsd_box* VideoSampleEntry(unsigned short width,unsigned short height)
             0x00, 0x48, 0x00, 0x00, // horizresolution: 4 bytes 常数
             0x00, 0x48, 0x00, 0x00, // vertresolution: 4 bytes 常数
             0x00, 0x00, 0x00, 0x00, // reserved: 4 bytes 保留位
-            0x00, 0x00, 0x00, 0x01, // frame_count 原本只有2字节(0x00, 0x01)，字节无法对齐的     
+            0x00, 0x01, // frame_count 原本只有2字节(0x00, 0x01)，字节无法对齐的     
             //frame_count表明多少帧压缩视频存储在每个样本。默认是1,每样一帧;它可能超过1每个样本的多个帧数
             0x04, //    strlen compressorname: 32 bytes        
             //32个8 bit    第一个8bit表示长度,剩下31个8bit表示内容
@@ -836,7 +867,8 @@ stsd_box* VideoSampleEntry(unsigned short width,unsigned short height)
 	unsigned int box_length = 0;//申请的内存长度
 	unsigned int write_len = 0;//实际写入的长度，用于安全校验
 	//---avc1----------------------------------------------
-	box_length = sizeof(avc1_box) + t_ntohl(avcc_item->avcc_buf->header.size);//pasp box暂未实现	
+	DEBUG_LOG("sizeof(avc1_box) = %d t_ntohl(avcc_item->avcc_buf->header.size)= %d\n",sizeof(avc1_box),t_ntohl(avcc_item->avcc_buf->header.size));
+	box_length = sizeof(avc1_box)-2 + t_ntohl(avcc_item->avcc_buf->header.size);//pasp box暂未实现	//-2 为了配合解析器
 	avc1_box*avc1_item = (avc1_box*)malloc(box_length);
 	if(NULL == avc1_item)
 	{
@@ -847,16 +879,17 @@ stsd_box* VideoSampleEntry(unsigned short width,unsigned short height)
 	memset(avc1_item,0,box_length);
 	
 	avc1_item->sample_entry.header.size = t_htonl(box_length);
-	DEBUG_LOG("avc1_item->sample_entry.header.size  = %x\n",avc1_item->sample_entry.header.size);
+	DEBUG_LOG("avc1_item->sample_entry.header.size  = %x  sizeof(avc1_box) = %d\n",avc1_item->sample_entry.header.size,sizeof(avc1_box));
 	strncpy(avc1_item->sample_entry.header.type,"avc1",4);
 	//拷贝AVC1数组
 	DEBUG_LOG("sizeof(avc1_item->sample_entry) = %d",sizeof(avc1_item->sample_entry.header));
 	memcpy((unsigned char*)avc1_item + sizeof(avc1_item->sample_entry.header),AVC1,sizeof(AVC1));
 
 	//拷贝 avcc box
-	memcpy((unsigned char*)avc1_item + sizeof(avc1_box),avcc_item->avcc_buf,avcc_item->buf_length);
+	//memcpy((unsigned char*)avc1_item + sizeof(avc1_box),avcc_item->avcc_buf,avcc_item->buf_length);
+	memcpy((unsigned char*)avc1_item + sizeof(avc1_box)-2,avcc_item->avcc_buf,avcc_item->buf_length);//-2 为了配合解析器
 
-	write_len = sizeof(avc1_box) + avcc_item->buf_length;
+	write_len = sizeof(avc1_box)-2 + avcc_item->buf_length;//-2 为了配合解析器
 	if(box_length != write_len)
 	{
 		ERROR_LOG("avc1_item malloc size(%d) but write sizeof(%d)\n",box_length,write_len);
@@ -869,7 +902,7 @@ stsd_box* VideoSampleEntry(unsigned short width,unsigned short height)
 
 
 	//---stsd----------------------------------------------
-	box_length += sizeof(stsd_box) + 4;	// +4是为了吻合解析器的解析格式
+	box_length += sizeof(stsd_box);
 	DEBUG_LOG("stsd_item malloc size(%d)\n",box_length);				 
 	stsd_box* stsd_item  = (stsd_box*)malloc(box_length);
 	if(NULL == stsd_item)
@@ -886,9 +919,14 @@ stsd_box* VideoSampleEntry(unsigned short width,unsigned short height)
 	//填充stsd 头部 
 	stsd_item->header.size = t_htonl(box_length);
 	strncpy(stsd_item->header.type,"stsd",4);
+	
+	//还有额外的 4字节 entry_count 变量  ，，不要漏了
+	stsd_item->entry_count = t_htonl(1); //entry的个数 默认赋值成 1
+	
+	
 
 	//偏移到avc1的位置
-	offset = sizeof(stsd_box)+4;//+4是为了吻合解析器的解析格式
+	offset = sizeof(stsd_box);
 	DEBUG_LOG("sizeof(stsd_box) = %d offset = %d\n",sizeof(stsd_box),offset);
 	//填充AVC1 box (已经包含了avcc box)
 	memcpy((unsigned char*)stsd_item + offset,avc1_item,t_ntohl(avc1_item->sample_entry.header.size));
@@ -1062,12 +1100,8 @@ mp4a_box* mp4a_box_init()
 		
 */
 #if 1
-#define 	NALU_SPS  0
-#define		NALU_PPS  1
-#define		NALU_I    2
-#define		NALU_P    3
-#define		NALU_SET  4
-int NaluType(unsigned char* naluData)
+
+int FrameType(unsigned char* naluData)
 {
 	int index = -1; 
      
@@ -1478,6 +1512,11 @@ avcc_box_info_t *	avcc_box_init(unsigned char* naluData, int naluSize)
 }
 
 #endif
+
+
+
+
+
 
 
 
