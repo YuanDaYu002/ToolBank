@@ -10,7 +10,7 @@
 
     	Visual Studio 2010 编译：./EasyAACEncoder-master/src/EasyAACEncoder.sln
 
-	Linux编译方法，
+	Linux编译方法，(Hisi3516XXX 已经在源码的基础上做了修改，直接 “Build 3516” 即可编译)
 		
 		chmod +x ./Buildit
 		./Buildit
