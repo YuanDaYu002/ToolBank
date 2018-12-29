@@ -14,6 +14,7 @@ extern "C"
 #define		NALU_P    3
 #define		NALU_SET  4
 
+#define ONE_SECOND_DURATION (90000)  //1秒时间分割数
 
 typedef unsigned int Fmp4TrackId; //轨道ID
 
@@ -111,7 +112,7 @@ typedef struct MovieExtendsBox_t
 typedef struct MovieFragmentHeaderBox_t
 {
 	FullBoxHeader_t header;
-	unsigned int  sequence_number;
+	unsigned int  sequence_number;//the ordinal number of this fragment, in increasing order
 }mfhd_box;
 
 typedef struct TrackFragmentBox_t
@@ -162,15 +163,17 @@ typedef struct TrackExtendsBox_t
 typedef struct TrackFragmentHeaderBox_t
 {
 	FullBoxHeader_t 		header;
+//12
 	unsigned int 			track_ID;
+//16
 	// all the following are optional fields 
 	unsigned long long 		base_data_offset; 
-	//unsigned long			base_data_offset; 
-	unsigned int 			sample_description_index; //多余了四个字节，与解析器对不上
+//24 
+	//unsigned int 			sample_description_index; //多余了四个字节，与解析器对不上
 	unsigned int 			default_sample_duration; 
 	unsigned int 			default_sample_size; 
-	unsigned int 			default_sample_flags;
-	
+	//unsigned int 			default_sample_flags;
+//40字节	
 }tfhd_box;
 
 typedef struct TrackFragmentBaseMediaDecodeTimeBox_t
@@ -200,12 +203,14 @@ typedef struct SampleDependencyTypeBox_t
 typedef struct TrackFragmentRunBox_t
 {
 	FullBoxHeader_t 	header;
+//12
 	unsigned int  		sample_count; //样本的个数
 	
-   // the following are optional fields ,以下是可选字段
+   // the following are optional fields ,以下是可选字段，需要通过设置 flags 值来选择有无该项
    signed int  			data_offset;
-   unsigned int  		first_sample_flags;
-   
+//20 字节 
+   //unsigned int  		first_sample_flags;
+//24字节
    // all fields in the following array are optional
    /*等实例化时再确认，先留下一个占位符
    {
@@ -226,7 +231,7 @@ typedef struct _trun_sample_t
     unsigned int sample_duration; //样本（可理解为1帧）的持续时间
     unsigned int sample_size;
     unsigned int sample_flags;
-    unsigned int sample_composition_time_offset; 
+   // unsigned int sample_composition_time_offset; 
 }trun_sample_t;
 
 /****四级BOX*********************************************************/
@@ -334,21 +339,29 @@ typedef struct _VideoSampleEntry_t
 #else
 typedef struct _VideoSampleEntry_t
 {
-	SampleEntry_t 				sample_entry;
-	
+	SampleEntry_t 				sample_entry;  
+	//16
 	unsigned short 				pre_defined;
 	unsigned short 				reserved_A;
+	//20
 	unsigned int 				pre_defined12[3];
+	//32
 	unsigned short 				width;
 	unsigned short 				height;
+	//36
 	unsigned int 				horizresolution; // 72 dpi 
 
 	unsigned int 				vertresolution; // 72 dpi
 	unsigned int 				reserved_B;
+	//48
 	unsigned short 				frame_count;  //frame_count表明多少帧压缩视频存储在每个样本。默认是1,每样一帧;它可能超过1每个样本的多个帧数
 	char 						compressorname [32];
+	//82
 	unsigned short 				depth;
+	//84
 	short 						pre_defined2;
+	//86 
+	//补2字节（4字节对齐） 88字节一共
 	
 }VideoSampleEntry_t ;//就是 avc1_box，本代码采用avc1_box
 
@@ -466,11 +479,12 @@ typedef struct DataEntryUrnBox_t
 typedef struct AVCDecoderConfigurationRecord_t
 {
 	BoxHeader_t 		header; 
+//8
 	unsigned char 		configurationVersion; 	//版本号，1
 	unsigned char 		AVCProfileIndication; 	//sps[1]
 	unsigned char 		profile_compatibility; 	//sps[2]
 	unsigned char 		AVCLevelIndication;		//sps[3]
-	
+//12
 	//bit(6) reserved = ‘111111’b;
 	//unsigned int(2) lengthSizeMinusOne; //H264中的NALU长度，计算方法为 1+(lengthSizeMinusOne & 3)
 	unsigned char 		reserved_6_lengthSizeMinusOne_2;//替代上边注释掉的两个变量
@@ -480,6 +494,7 @@ typedef struct AVCDecoderConfigurationRecord_t
 	unsigned char 		reserved_3_numOfSequenceParameterSets_5;//替代上边注释掉的两个变量
 	//for (i=0; i< numOfSequenceParameterSets; i++) {	//(sps_size + sps)数组
 	  unsigned short sequenceParameterSetLength ;		//sps长度
+//16
 	  unsigned char sequenceParameterSetNALUnit[0];		//sps内容
 	//}
 	
@@ -488,8 +503,9 @@ typedef struct AVCDecoderConfigurationRecord_t
 	//for (i=0; i< numOfPictureParameterSets; i++) {	(pps_size + pps)数组
 	  unsigned short pictureParameterSetLength;		//pps长度
 	  unsigned char pictureParameterSetNALUnit[0]; 	//pps内容
+//19 字节 + 1字节填充（注意0长数组不占空间）
+//20字节
 	//}
-
 }avcc_box;
 typedef struct _avcc_box_info_t
 {

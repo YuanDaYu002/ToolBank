@@ -118,7 +118,7 @@ mdat_box* mdat_box_init(unsigned int box_length)
 	
 /***二级BOX初始化***************************************/
 /*
-	timescale = 1000;
+	timescale = 90000;
 	duration = 0;		
 */
 mvhd_box* mvhd_box_init(unsigned int timescale,unsigned int duration)
@@ -369,23 +369,23 @@ tfhd_box*	tfhd_box_init(unsigned int trackId)
 	tfhd_item->header.size = t_htonl(sizeof(tfhd_box));
 	strncpy(tfhd_item->header.type,"tfhd",4);
 
-	unsigned int default_sample_duration = 1000/15;
+	unsigned int default_sample_duration = ONE_SECOND_DURATION/15; //默认15帧，填充前还得修正
     const unsigned char TFHD[] = {
         //0x00, 0x00, 0x00, 0x00, // version(0) & flags
-        0x00, 0x02, 0x00, 0x3B,	// version(0) & flags  //从每个视频的偏移位置从moof算起。
+        0x00, 0x02, 0x00, 0x19,	// version(0) & flags  //从每个视频的偏移位置从moof算起。
         (trackId >> 24) & 0xFF, // track_ID
         (trackId >> 16) & 0xFF,
         (trackId >> 8) & 0xFF,
         (trackId) & 0xFF,
         //后边为新增部分
         0x00,0x00,0x00,0x00,	//base_data_offset
-        0x00,0x00,0x00,0x00,	//sample_description_index
-       	(default_sample_duration >> 24) & 0xFF, //default_sample_duration 按照1000/15毫秒来算的。单位ms,如若单位不对，后续修正
+       // 0x00,0x00,0x00,0x00,	//sample_description_index
+       	(default_sample_duration >> 24) & 0xFF, //default_sample_duration 
         (default_sample_duration >> 16) & 0xFF,
         (default_sample_duration >> 8) & 0xFF,
         (default_sample_duration) & 0xFF,	
         0x00,0x00,0x00,0x00, //default_sample_size
-        0x00,0x00,0x00,0x00, //default_sample_flags
+       // 0x00,0x00,0x00,0x00, //default_sample_flags
         
     	};
 	DEBUG_LOG("ziseof(TFHD) = %d\n",sizeof(TFHD));
@@ -447,12 +447,12 @@ trun_box*	trun_box_init()
 	memset(trun_item,0,sizeof(trun_box));
 	trun_item->header.size = t_htonl(sizeof(trun_box)); 
 	strncpy(trun_item->header.type,"trun",4);
-	unsigned char version_flags[] = {0x00, 0x00, 0x0F, 0x01};
+	unsigned char version_flags[] = {0x00, 0x00, 0x07, 0x01};//注意flag会决定下边可选的项目哪些有哪些没有
 	memcpy((unsigned char*)trun_item + 8,version_flags,4);//初始化version & flags
 	
 
 	trun_item->sample_count = 0; //样本的个数，后续依据样本再动态修改
-	trun_item->first_sample_flags = 0;
+	//trun_item->first_sample_flags = 0;
 	
 	//后边的samples相关数据需要   音视频混合程序来实时填充，初始化不做处理
 
@@ -819,8 +819,11 @@ stsd_box*  AudioSampleEntry(unsigned char channelCount,unsigned short sampleRate
 stsd_box* VideoSampleEntry(unsigned short width,unsigned short height)
 {
 	unsigned char AVC1[] = {
+			//-----BoxHeader 没填------------------------
+			//-----SampleEntry_t的数据-------------------
             0x00, 0x00, 0x00, 0x00, // reserved(4)    6个 保留位 Reserved：6个字节，设置为0；
             0x00, 0x00, 0x00, 0x01, // reserved(2) + data_reference_index(2)  数据引用索引
+         	//-----VideoSampleEntry_t的数据--------------
             0x00, 0x00, 0x00, 0x00, // pre_defined(2) + reserved(2)
             0x00, 0x00, 0x00, 0x00, // pre_defined: 3 * 4 bytes  3*4个字节的保留位
             0x00, 0x00, 0x00, 0x00,
@@ -832,7 +835,7 @@ stsd_box* VideoSampleEntry(unsigned short width,unsigned short height)
             0x00, 0x48, 0x00, 0x00, // horizresolution: 4 bytes 常数
             0x00, 0x48, 0x00, 0x00, // vertresolution: 4 bytes 常数
             0x00, 0x00, 0x00, 0x00, // reserved: 4 bytes 保留位
-            0x00, 0x01, // frame_count 原本只有2字节(0x00, 0x01)，字节无法对齐的     
+            0x00, 0x01, // frame_count ，此处字节无法对齐的！！！！     
             //frame_count表明多少帧压缩视频存储在每个样本。默认是1,每样一帧;它可能超过1每个样本的多个帧数
             0x04, //    strlen compressorname: 32 bytes        
             //32个8 bit    第一个8bit表示长度,剩下31个8bit表示内容
@@ -868,7 +871,7 @@ stsd_box* VideoSampleEntry(unsigned short width,unsigned short height)
 	unsigned int write_len = 0;//实际写入的长度，用于安全校验
 	//---avc1----------------------------------------------
 	DEBUG_LOG("sizeof(avc1_box) = %d t_ntohl(avcc_item->avcc_buf->header.size)= %d\n",sizeof(avc1_box),t_ntohl(avcc_item->avcc_buf->header.size));
-	box_length = sizeof(avc1_box)-2 + t_ntohl(avcc_item->avcc_buf->header.size);//pasp box暂未实现	//-2 为了配合解析器
+	box_length = sizeof(avc1_box)-2 + t_ntohl(avcc_item->avcc_buf->header.size);//pasp box暂未实现	//-2 为了配合解析器，结构体对齐时会补全2字节
 	avc1_box*avc1_item = (avc1_box*)malloc(box_length);
 	if(NULL == avc1_item)
 	{
@@ -1108,29 +1111,32 @@ int FrameType(unsigned char* naluData)
     if(naluData[0]==0 && naluData[1]==0 && naluData[2]==0 && naluData[3]==1 && naluData[4]==0x67)
     {
         index = NALU_SPS;
-        printf("%s[%d]====NALU_SPS\n",__FUNCTION__,__LINE__);
+        printf("---NALU_SPS---\n");
     }
-
-    if(naluData[0]==0 && naluData[1]==0 && naluData[2]==0 && naluData[3]==1 && naluData[4]==0x68)
+	else if(naluData[0]==0 && naluData[1]==0 && naluData[2]==0 && naluData[3]==1 && naluData[4]==0x68)
     {
         index = NALU_PPS;
-        printf("%s[%d]====NALU_PPS\n",__FUNCTION__,__LINE__);
+        printf("---NALU_PPS---\n");
     }
-    if(naluData[0]==0 && naluData[1]==0 && naluData[2]==0 && naluData[3]==1 && naluData[4]==0x65)
+    else if(naluData[0]==0 && naluData[1]==0 && naluData[2]==0 && naluData[3]==1 && naluData[4]==0x65)
     {
         index = NALU_I;
-        printf("%s[%d]====NALU_I\n",__FUNCTION__,__LINE__);
+        printf("---NALU_I---\n");
     }
-    if(naluData[0]==0 && naluData[1]==0 && naluData[2]==0 && naluData[3]==1 && naluData[4]==0x61)
+    else if(naluData[0]==0 && naluData[1]==0 && naluData[2]==0 && naluData[3]==1 && naluData[4]==0x61)
     {
         index = NALU_P;
-        printf("%s[%d]====NALU_P\n",__FUNCTION__,__LINE__);
+       printf("---NALU_P---\n");
     }
-    if(naluData[0]==0 && naluData[1]==0 && naluData[2]==0 && naluData[3]==1 && naluData[4]==0x6)
+    else if(naluData[0]==0 && naluData[1]==0 && naluData[2]==0 && naluData[3]==1 && naluData[4]==0x6)
     {
         index = NALU_SET;
-        printf("%s[%d]====NALU_SET\n",__FUNCTION__,__LINE__);
+       printf("---NALU_SET---\n");
     }
+	else
+	{
+		printf("---NALU_unknow!!---\n");
+	}
 
 	return index;
 }
@@ -1203,7 +1209,6 @@ avcc_box_info_t *	avcc_box_init(void)
 	unsigned char reserved_6_lengthSizeMinusOne_2 = reserved6|_naluLengthSize;//reserved_6_lengthSizeMinusOne_2
 
 	unsigned char reserved3 = 0xe0;//二进制：1110 0000
-
 	unsigned char spsCount = 1;
 	unsigned char reserved_3_numOfSequenceParameterSets_5 = reserved3|spsCount;  
 	DEBUG_LOG("start avcc_box_init..02\n");
@@ -1229,7 +1234,7 @@ avcc_box_info_t *	avcc_box_init(void)
  
 		
 
-		unsigned int box_len =	sizeof(avcc_box) + PPS_len + SPS_len;
+		unsigned int box_len =	sizeof(avcc_box)-1 + PPS_len + SPS_len;//-1用来修正字节对齐的填充字节，不算在box内
 		DEBUG_LOG("avcc_item malloc size(%d)\n",box_len);
 		avcc_box* avcc_item = (avcc_box*)malloc(box_len);
 		if(NULL == avcc_item)
@@ -1250,12 +1255,13 @@ avcc_box_info_t *	avcc_box_init(void)
 		//SPS
 		avcc_item->reserved_3_numOfSequenceParameterSets_5 = reserved_3_numOfSequenceParameterSets_5;	
 		memcpy(&avcc_item->sequenceParameterSetLength,&sequenceParameterSetLength,sizeof(sequenceParameterSetLength));
-		memcpy((unsigned char*)&avcc_item->sequenceParameterSetLength + 2,my_SPS,SPS_len);
+		memcpy((unsigned char*)&avcc_item->sequenceParameterSetNALUnit,my_SPS,SPS_len);
 	
-		//PPS
-		avcc_item->numOfPictureParameterSets = ppsCount;
-		memcpy(&avcc_item->pictureParameterSetLength,&PPS_len,sizeof(PPS_len));
-		memcpy((unsigned char*)&avcc_item->pictureParameterSetLength + 2,my_PPS,PPS_len);
+		//PPS 注意：avcc_box 数据结构里边并没有包括sps的数据的空间，所以填充PPS时要注意加上sps数据的偏移量
+		//错误赋值方式：avcc_item->numOfPictureParameterSets = ppsCount;
+		memcpy((unsigned char*)avcc_item->sequenceParameterSetNALUnit + SPS_len,&ppsCount,sizeof(ppsCount));		//numOfPictureParameterSets
+		memcpy((unsigned char*)avcc_item->sequenceParameterSetNALUnit + SPS_len + 1,&pictureParameterSetLength,sizeof(pictureParameterSetLength)); //pictureParameterSetLength
+		memcpy((unsigned char*)avcc_item->sequenceParameterSetNALUnit + SPS_len + 1 + 2,my_PPS,PPS_len);//PPS数据
 	
 		#endif
 		DEBUG_LOG("start avcc_box_init..06\n");
