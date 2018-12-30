@@ -466,8 +466,18 @@ fmp4_file_box_t* fmp4_box_init()
 		return NULL;
 	}
 
-
+	fmp4BOX.mfraBox = mfra_box_init();
 	
+	#if HAVE_VIDEO
+		fmp4BOX.tfra_video = tfra_video_init();
+	#endif
+
+	#if HAVE_AUDIO
+		fmp4BOX.tfra_audio = tfra_audio_init();
+	#endif
+
+	fmp4BOX.mfroBox = mfro_box_init();
+		
 	return &fmp4BOX;
 
 }
@@ -1054,7 +1064,7 @@ int	remuxVideo(void *video_frame,unsigned int frame_length,unsigned int frame_ra
 		isNonSync = 0;
 		/*
 		//只接受 I/P帧，对IDR帧之前的PPS SPS做剔除
-		video_frame = video_frame + 37;//37字节为海思编码IDR帧的SPS + PPS总长度
+		video_frame = video_frame + 37;//37字节为海思编码IDR帧的SPS + PPS + SEI总长度
 		frame_length = frame_length - 37;
 		*/
 	}
@@ -1254,6 +1264,84 @@ unsigned int buf_cpy(void *dst,void *src ,unsigned int cpy_len, unsigned int off
 	
 	return 0;
 }
+
+/**************************************************************************
+录制结束前重建mfra box及其子box
+参数：
+	mfraBox：重建的mfra box的指针（包含子box）
+	len：重建的mfra box的长度（包含子box）
+返回值：
+	成功：0
+	失败：-1
+注意：该函数是在最后录制结束的时候调用，调用后就意味着之前所有的
+	moof + mdat的数据以及数量都不能再变化，不然填入的该box将是错误的
+**************************************************************************/
+unsigned int mfra_box_rebuid(OUT mfra_box*mfraBox,OUT unsigned int *len)
+{
+	//重新计算mfra box的总长度
+	unsigned int mfra_len = t_ntohl(fmp4BOX.mfraBox->header.size);
+	unsigned int tfra_video_len = 0;
+	unsigned int tfra_audio_len = 0;
+	
+	#if HAVE_VIDEO
+		tfra_video_len = t_ntohl(fmp4BOX.tfra_video->tfraBox->header.size);
+		mfra_len += tfra_video_len;
+	#endif
+
+	#if HAVE_AUDIO
+		tfra_audio_len = t_ntohl(fmp4BOX.tfra_audio->tfraBox->header.size);
+		mfra_len += tfra_audio_len;
+	#endif
+
+	mfra_len += t_ntohl(fmp4BOX.mfroBox->header.size);
+
+	//重新申请内存
+	DEBUG_LOG("mfra_item rebuid malloc size(%d)\n",mfra_len);
+	mfra_box * mfra_item = (mfra_box *)malloc(mfra_len);
+	if(NULL == mfra_item)
+	{
+		ERROR_LOG("malloc failed !\n");
+		return -1;
+	}
+		
+	memset(mfra_item,0,mfra_len);
+
+	unsigned char*offset = (unsigned char*)mfra_item;
+
+	//填充数据：
+	memcpy(offset,fmp4BOX.mfraBox,t_ntohl(fmp4BOX.mfraBox->header.size));
+	offset += t_ntohl(fmp4BOX.mfraBox->header.size);
+
+	#if HAVE_VIDEO
+		memcpy(offset,fmp4BOX.tfra_video,tfra_video_len);
+		offset += tfra_video_len;
+	#endif
+
+	#if HAVE_AUDIO
+		memcpy(offset,fmp4BOX.tfra_audio,tfra_audio_len);
+		offset += tfra_audio_len;
+	#endif
+
+	memcpy(offset,fmp4BOX.mfroBox,t_ntohl(fmp4BOX.mfroBox->header.size));
+	offset += t_ntohl(fmp4BOX.mfroBox->header.size);
+
+	//释放掉原来旧的mfra box
+	free(fmp4BOX.mfraBox);
+	
+	//填入重建后的mfra box
+	fmp4BOX.mfraBox = mfra_item;
+
+	//最后修正总长度
+	fmp4BOX.mfraBox->header.size = t_htonl((unsigned char*)offset - (unsigned char*)mfra_item);//上层调用增加child box后再及时修正
+
+	//填充返回参数
+	mfraBox = fmp4BOX.mfraBox;
+	*len = (unsigned char*)offset - (unsigned char*)mfra_item;
+	
+	return 0;
+}
+
+
 
 /*	
 	音视频混合线程主要功能函数
@@ -1665,7 +1753,42 @@ void * remuxVideoAudio(void *args)
 	}
 	while(remux_run);
 
-		/***DEBUG*********************************/
+	//最后写入一个结束box     		mfra box及其子box 
+	mfra_box *mfraBox = NULL; 
+	unsigned int mfraBox_len = 0;
+	unsigned int mfre_ret = mfra_box_rebuid(mfraBox,&mfraBox_len);
+	
+	fmp4_file_lable.mfraBox_offset =  (out_mode == SAVE_IN_FILE)?\
+									  ftell(file_handle):\
+									  out_info.buf_mode.w_offset;
+	if(out_mode == SAVE_IN_FILE)
+	{
+		fseek(file_handle,0, SEEK_END); 
+					int ret = fwrite(mfraBox ,1,mfraBox_len,file_handle); 
+					if(ret < 0)
+					{
+						ERROR_LOG("fwrite file error!\n");
+						pthread_exit(0);
+					}
+					fflush(file_handle);		
+					
+	}
+	else  //保存到内存
+	{
+		print_char_array("mfra",(unsigned char*)mfraBox,10);
+		if(out_info.buf_mode.w_offset + mfraBox_len > out_info.buf_mode.buf_size)
+		{
+				ERROR_LOG("over write! fmp4 out put file memory is pool!\n");
+				pthread_exit(0);
+		}
+		memcpy(out_info.buf_mode.buf_start + out_info.buf_mode.w_offset,mfraBox,mfraBox_len);
+		out_info.buf_mode.w_offset += mfraBox_len;
+		DEBUG_LOG("out_info.buf_mode.w_offset = %d\n",out_info.buf_mode.w_offset);
+		
+	}
+
+	/***DEBUG 保存到内存模式下最后整体再写入到文件*********************************/
+	
 	#if 1
 		char* debug_file_name = "/jffs0/fmp4.mp4";
 		if(0 == access(debug_file_name,F_OK))
@@ -1702,7 +1825,6 @@ void * remuxVideoAudio(void *args)
 	#endif
 	/*****************************************/
 
-	//最后写入一个结束box,待定
 	
 	DEBUG_LOG("Thread remuxVideoAudio exit!\n");
 

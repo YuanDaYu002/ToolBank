@@ -68,6 +68,13 @@ typedef struct MediaDataBox_t
 }mdat_box;
 
 
+typedef struct MovieFragmentRandomAccessBox_t
+{
+	BoxHeader_t 	  header;
+	char 			  data[0];	//真实数据
+}mfra_box;
+
+
 /***二级BOX***************************************/
 
 typedef struct MovieHeaderBox_t
@@ -121,6 +128,38 @@ typedef struct TrackFragmentBox_t
 	//char 			child_box[0]; //0长数组，占位
 }traf_box;
 	
+typedef struct TrackFragmentRandomAccessBox_t
+{
+	FullBoxHeader_t 	header;
+	unsigned int 		track_ID;
+	const unsigned char reserved[26];
+	unsigned char 		length_size_of_traf_num[2];
+	unsigned char 		length_size_of_trun_num[2];
+	unsigned char 		length_size_of_sample_num[2];
+	unsigned int 		number_of_entry;  /*number_of_entry是一个整数，它给出了入口的条目数（moof数）。如果这个值是零，它
+											指示每个样本都是同步样本，后面没有表项。
+										   */
+	
+	//for(i=1; i <= number_of_entry; i++){
+	/*
+	unsigned int 		time;
+	unsigned int 		moof_offset;
+	unsigned int((length_size_of_traf_num+1) * 8) traf_number;
+	unsigned int((length_size_of_trun_num+1) * 8) trun_number;
+	unsigned int((length_size_of_sample_num+1) * 8) sample_number;
+	*/
+	//}
+}tfra_box;
+
+typedef struct MovieFragmentRandomAccessOffsetBox_t
+{
+	FullBoxHeader_t 	header;
+	unsigned int 		size;
+	/*size是一个整数，给出了包含“mfra”框的字节数。
+		这个字段放在最后，以协助读者从档案结尾搜寻“mfra”框。
+	*/
+}mfro_box;
+
 
 
 /***三级BOX***************************************/
@@ -675,6 +714,16 @@ typedef struct _traf_audio_t
 }traf_audio_t;
 
 
+typedef struct _tfra_video_t
+{
+	lve2 tfra_box *tfraBox;
+}tfra_video_t;
+
+typedef struct _tfra_audio_t
+{
+	lve2 tfra_box *tfraBox;
+}tfra_audio_t;
+
 typedef struct _fmp4_file_box_t
 {
 	lve1 ftyp_box *ftypBox;
@@ -692,8 +741,10 @@ typedef struct _fmp4_file_box_t
 		lve2 traf_video_t *traf_video;
 		lve2 traf_audio_t *traf_audio;
 	lve1 mdat_box *mdatBox;
-
-	
+	lve1 mfra_box *mfraBox;
+		lve2 tfra_video_t *tfra_video;
+		lve2 tfra_audio_t *tfra_audio;
+		lve2 mfro_box *mfroBox;
 
 }fmp4_file_box_t;
 
@@ -786,6 +837,12 @@ mp4a_box* mp4a_box_init();
 avcc_box_info_t *	avcc_box_init(void);
 int FrameType(unsigned char* naluData);
 void print_char_array(unsigned char* box_name,unsigned char*start,unsigned int length);
+mfra_box* mfra_box_init();
+tfra_video_t * tfra_video_init();
+tfra_audio_t * tfra_audio_init();
+mfro_box * mfro_box_init();
+
+
 
 
 

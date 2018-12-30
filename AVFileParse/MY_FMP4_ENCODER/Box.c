@@ -115,6 +115,19 @@ mdat_box* mdat_box_init(unsigned int box_length)
 	return mdat_item;
 }
 
+mfra_box* mfra_box_init()
+{
+	DEBUG_LOG("mfra_item malloc size(%d)\n",sizeof(mfra_box));
+	mfra_box * mfra_item = (mfra_box *)malloc(sizeof(mfra_box));
+	if(NULL == mfra_item)
+		return NULL;
+	memset(mfra_item,0,sizeof(mfra_box));
+	mfra_item->header.size = t_htonl(sizeof(mfra_box));//上层调用增加child box后再及时修正
+	strncpy(mfra_item->header.type,"mfra",4);
+
+	return mfra_item;
+}
+
 	
 /***二级BOX初始化***************************************/
 /*
@@ -245,6 +258,76 @@ traf_box*	traf_box_init(unsigned int box_length)
 
 
 	return traf_item;
+}
+
+tfra_box * tfra_box_init()
+{
+	DEBUG_LOG("tfra_item malloc size(%d)\n",sizeof(tfra_box));
+	tfra_box *tfra_item = (tfra_box*)malloc(sizeof(tfra_box));
+	if(NULL == tfra_item)
+	{
+		ERROR_LOG("malloc failed !\n");
+		return NULL;
+	}
+	memset(tfra_item,0,sizeof(tfra_box));
+	
+	tfra_item->header.size = t_htonl(sizeof(tfra_box));
+	strncpy(tfra_item->header.type,"tfra",4);
+
+	//memset 已经搞定，不做重复操作
+	//tfra_item->length_size_of_traf_num = {0};
+	//tfra_item->length_size_of_trun_num = {0};
+	//tfra_item->length_size_of_sample_num = {0};
+	//tfra_item->number_of_entry = 0;
+
+	return tfra_item;
+	
+}
+
+static tfra_video_t  tfra_video = {0};
+tfra_video_t * tfra_video_init()
+{
+	tfra_video.tfraBox = tfra_box_init();
+	if(NULL == tfra_video.tfraBox)
+	{
+		ERROR_LOG("tfra_video_init failed !\n");
+		return NULL;
+	}
+	return &tfra_video;
+}
+
+static tfra_audio_t  tfra_audio = {0};
+tfra_audio_t * tfra_audio_init()
+{
+	tfra_audio.tfraBox = tfra_box_init();
+	if(NULL == tfra_audio.tfraBox)
+	{
+		ERROR_LOG("tfra_audio_init failed !\n");
+		return NULL;
+	}
+	return &tfra_audio;
+}
+
+
+
+mfro_box * mfro_box_init()
+{
+	DEBUG_LOG("mfro_item malloc size(%d)\n",sizeof(mfro_box));
+	mfro_box *mfro_item = (mfro_box*)malloc(sizeof(mfro_box));
+	if(NULL == mfro_item)
+	{
+		ERROR_LOG("malloc failed !\n");
+		return NULL;
+	}
+	memset(mfro_item,0,sizeof(mfro_box));
+	
+	mfro_item->header.size = t_htonl(sizeof(mfro_box));
+	strncpy(mfro_item->header.type,"mfro",4);
+
+	mfro_item->size = t_htonl(sizeof(mfro_box));//最终要和mfra的大小一样。这里只初始化为自身大小
+
+	return mfro_item;
+	
 }
 
 
@@ -1170,11 +1253,18 @@ PPS 							4			PPS的内容
 unsigned char IDR_NALU[] = {
 0x00,0x00,0x00,0x01, 0x67,0x4D,0x00,0x2A, 0x96,0x35,0xC0,0xF0, 0x04,0x4F,0xCB,0x37,
 0x01,0x01,0x01,0x02, 0x00,0x00,0x00,0x01, 0x68,0xEE,0x3C,0x80, 0x00,0x00,0x00,0x01,
-0x06,0xE5,0x01,0x2E, 0x80/*后边省略 I帧数据*/
+0x06,0xE5,0x01,0x2E, 0x80/*后边省略 I帧部分*/
 };
+
+//以下数组都不包含起始头部分 
+//SPS:0x00,0x00,0x00,0x01, 0x67
+//PPS:0x00,0x00,0x00,0x01, 0x68
+//SEI:0x00,0x00,0x00,0x01, 0x06
 unsigned char my_SPS[] = {0x4D,0x00,0x2A, 0x96,0x35,0xC0,0xF0, 0x04,0x4F,0xCB,0x37,0x01,0x01,0x01,0x02};
 
 unsigned char my_PPS[] = {0xEE,0x3C,0x80};
+unsigned char my_SEI[] = {0xE5,0x01,0x2E, 0x80};
+
 
 #if 1
 avcc_box_info_t *	avcc_box_init(void)

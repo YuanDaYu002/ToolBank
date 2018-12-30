@@ -1,3 +1,5 @@
+
+
  
 #ifndef _FMP4_H
 #define _FMP4_H
@@ -8,6 +10,10 @@
 #define AUDIO_TRACK 2   //音频轨道
 #define HAVE_VIDEO 1
 #define HAVE_AUDIO 0
+
+#define OUT  //标记为输出参数
+#define IN	 //标记为输入参数
+
 
 /**************************************************************************
 生成的fmp4文件直接保存到文件/内存
@@ -138,6 +144,10 @@ typedef struct _fmp4_file_lable_t
 		lve2 traf_video_lable_t traf_video_offset;
 		lve2 traf_audio_lable_t traf_audio_offset;
 	lve1 unsigned int mdatBox_offset;
+	lve1 unsigned int mfraBox_offset;
+		lve2 unsigned int tfra_video_offset;
+		lve2 unsigned int tfra_audio_offset;
+		lve2 unsigned int mfroBox_offset;
 
 }fmp4_file_lable_t;
 fmp4_file_lable_t fmp4_file_lable = {0};
