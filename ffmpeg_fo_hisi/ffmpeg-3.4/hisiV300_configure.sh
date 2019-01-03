@@ -1,0 +1,21 @@
+./configure \
+--disable-yasm \
+--disable-ffplay \
+--disable-ffprobe \
+--disable-ffserver \
+--disable-debug \
+--disable-avdevice \
+--disable-devices \
+--disable-zlib \
+--disable-bzlib \
+--disable-encoders \
+--enable-ffmpeg \
+--enable-static \
+--enable-gpl \
+--enable-small \
+--target-os=linux \
+--arch=arm \
+--enable-cross-compile \
+--cross-prefix=arm-himix100-linux- \
+--cc=arm-himix100-linux-gcc \
+--prefix=./out

@@ -1119,6 +1119,7 @@ int	remuxVideo(void *video_frame,unsigned int frame_length,unsigned int frame_ra
 			//保存sample的信息，   用来更新moof 里边 video traf 下相关 box 的信息(主要是 trun box)
 			buf_remux_video.sample_info[buf_remux_video.write_index].trun_sample.sample_duration = t_htonl(ONE_SECOND_DURATION/frame_rate);
 			buf_remux_video.sample_info[buf_remux_video.write_index].trun_sample.sample_size = t_htonl(frame_length);
+			
 
 
 	
@@ -1147,6 +1148,7 @@ int	remuxVideo(void *video_frame,unsigned int frame_length,unsigned int frame_ra
 	*/
 	if(buf_remux_video.frame_count >= buf_remux_video.frame_rate) //存够了1S的数据,就更新 fmp4BOX.traf_video 分支 
 	{
+		
 		remux_v_can_write = 1;
 		while(remux_v_can_write)//等待写入操作成功
 		{
@@ -1276,25 +1278,27 @@ unsigned int buf_cpy(void *dst,void *src ,unsigned int cpy_len, unsigned int off
 注意：该函数是在最后录制结束的时候调用，调用后就意味着之前所有的
 	moof + mdat的数据以及数量都不能再变化，不然填入的该box将是错误的
 **************************************************************************/
-unsigned int mfra_box_rebuid(OUT mfra_box*mfraBox,OUT unsigned int *len)
+unsigned int mfra_box_rebuid(OUT mfra_box**mfraBox,OUT unsigned int *len)
 {
 	//重新计算mfra box的总长度
 	unsigned int mfra_len = t_ntohl(fmp4BOX.mfraBox->header.size);
 	unsigned int tfra_video_len = 0;
 	unsigned int tfra_audio_len = 0;
 	
+	DEBUG_LOG("mfra_len(%d)\n",mfra_len);
 	#if HAVE_VIDEO
-		tfra_video_len = t_ntohl(fmp4BOX.tfra_video->tfraBox->header.size);
+		tfra_video_len = t_ntohl(fmp4BOX.tfra_video->tfraBox->header.size) + buf_remux_video.entry_info_num*(sizeof(tfra_entry_info_t)-1);
 		mfra_len += tfra_video_len;
+		DEBUG_LOG("mfra_len(%d)\n",mfra_len);
 	#endif
 
 	#if HAVE_AUDIO
-		tfra_audio_len = t_ntohl(fmp4BOX.tfra_audio->tfraBox->header.size);
+		tfra_audio_len = t_ntohl(fmp4BOX.tfra_audio->tfraBox->header.size) +  buf_remux_audio.entry_info_num*(sizeof(tfra_entry_info_t)-1);
 		mfra_len += tfra_audio_len;
 	#endif
 
 	mfra_len += t_ntohl(fmp4BOX.mfroBox->header.size);
-
+	DEBUG_LOG("mfra_len(%d)\n",mfra_len);
 	//重新申请内存
 	DEBUG_LOG("mfra_item rebuid malloc size(%d)\n",mfra_len);
 	mfra_box * mfra_item = (mfra_box *)malloc(mfra_len);
@@ -1311,19 +1315,43 @@ unsigned int mfra_box_rebuid(OUT mfra_box*mfraBox,OUT unsigned int *len)
 	//填充数据：
 	memcpy(offset,fmp4BOX.mfraBox,t_ntohl(fmp4BOX.mfraBox->header.size));
 	offset += t_ntohl(fmp4BOX.mfraBox->header.size);
-
+	int i = 0;
+	
 	#if HAVE_VIDEO
-		memcpy(offset,fmp4BOX.tfra_video,tfra_video_len);
-		offset += tfra_video_len;
+		fmp4BOX.tfra_video->tfraBox->track_ID = t_htonl(VIDEO_TRACK);
+		fmp4BOX.tfra_video->tfraBox->header.size = t_htonl(tfra_video_len);
+		DEBUG_LOG("buf_remux_video.entry_info_num(%d)\n",buf_remux_video.entry_info_num);
+		fmp4BOX.tfra_video->tfraBox->number_of_entry = t_htonl(buf_remux_video.entry_info_num);
+		memcpy(offset,fmp4BOX.tfra_video->tfraBox ,sizeof(tfra_box));
+		//
+		offset = offset + sizeof(tfra_box);
+		for(i = 0; i < buf_remux_video.entry_info_num;i++)
+		{
+			memcpy(offset,&buf_remux_video.entry_info[i],sizeof(tfra_entry_info_t)-1);//sizeof()会进行字节对齐，最后一个字节是不需要的
+			offset = offset + sizeof(tfra_entry_info_t)-1;
+		}
+		//offset += tfra_video_len - sizeof(tfra_box);//sizeof(tfra_box)在前边已经加了
 	#endif
 
 	#if HAVE_AUDIO
-		memcpy(offset,fmp4BOX.tfra_audio,tfra_audio_len);
-		offset += tfra_audio_len;
+		fmp4BOX.tfra_audio->tfraBox->track_ID = t_htonl(AUDIO_TRACK);
+		fmp4BOX.tfra_audio->tfraBox->header.size = t_htonl(tfra_audio_len);
+		fmp4BOX.tfra_audio->tfraBox->number_of_entry = t_htonl(buf_remux_audio.entry_info_num);
+		memcpy(offset,fmp4BOX.tfra_audio->tfraBox,sizeof(tfra_box));
+		offset = offset + sizeof(tfra_box);
+		for(i = 0; i < buf_remux_audio.entry_info_num;i++)
+		{
+			memcpy(offset,&buf_remux_audio.entry_info[i],sizeof(tfra_entry_info_t)-1);//sizeof()会进行字节对齐，最后一个字节是不需要的
+			offset = offset + sizeof(tfra_entry_info_t)-1;
+		}
 	#endif
 
+	//mfro 
+	fmp4BOX.mfroBox->size = t_htonl((unsigned char*)offset + (t_ntohl(fmp4BOX.mfroBox->header.size)) - (unsigned char*)mfra_item); //要将mfro所有长度都算进去
 	memcpy(offset,fmp4BOX.mfroBox,t_ntohl(fmp4BOX.mfroBox->header.size));
 	offset += t_ntohl(fmp4BOX.mfroBox->header.size);
+	
+
 
 	//释放掉原来旧的mfra box
 	free(fmp4BOX.mfraBox);
@@ -1334,8 +1362,9 @@ unsigned int mfra_box_rebuid(OUT mfra_box*mfraBox,OUT unsigned int *len)
 	//最后修正总长度
 	fmp4BOX.mfraBox->header.size = t_htonl((unsigned char*)offset - (unsigned char*)mfra_item);//上层调用增加child box后再及时修正
 
+
 	//填充返回参数
-	mfraBox = fmp4BOX.mfraBox;
+	*mfraBox = fmp4BOX.mfraBox;
 	*len = (unsigned char*)offset - (unsigned char*)mfra_item;
 	
 	return 0;
@@ -1412,6 +1441,8 @@ void * remuxVideoAudio(void *args)
 			mdat_box_len = t_ntohl(fmp4BOX.mdatBox->header.size );
 			//先记录 moof在文件中的起始位置，tfhd box中需要该参数
 			fmp4_file_lable.moofBox_offset = (out_mode == SAVE_IN_FILE) ? ftell(file_handle) : out_info.buf_mode.w_offset;
+
+
 			
 			if(have_video)
 			{
@@ -1458,6 +1489,14 @@ void * remuxVideoAudio(void *args)
 				mdat_box_len += buf_remux_video.write_pos - buf_remux_video.remux_video_buf;
 				fmp4BOX.mdatBox->header.size  = t_htonl(mdat_box_len);
 				DEBUG_LOG("debug mdat_box_len (%d)\n",mdat_box_len);
+
+				//记录 moof的偏移等信息
+				buf_remux_video.entry_info[buf_remux_video.entry_info_num].moof_offset = t_htonl(fmp4_file_lable.moofBox_offset);
+				buf_remux_video.entry_info[buf_remux_video.entry_info_num].time = t_htonl((buf_remux_video.entry_info_num) * ONE_SECOND_DURATION);
+				buf_remux_video.entry_info[buf_remux_video.entry_info_num].traf_number = 1;	
+				buf_remux_video.entry_info[buf_remux_video.entry_info_num].trun_number = 1;
+				buf_remux_video.entry_info[buf_remux_video.entry_info_num].sample_number = 1;
+				buf_remux_video.entry_info_num ++;
 				pthread_mutex_unlock(&buf_remux_video.mut);
 			}
 
@@ -1491,7 +1530,14 @@ void * remuxVideoAudio(void *args)
 				//更新 mdat box长度
 				mdat_box_len += buf_remux_audio.write_pos - buf_remux_audio.remux_audio_buf;
 				fmp4BOX.mdatBox->header.size = t_htonl(mdat_box_len);
-						
+
+				//记录 moof的偏移等信息
+				buf_remux_audio.entry_info[buf_remux_audio.entry_info_num].moof_offset = t_htonl(fmp4_file_lable.moofBox_offset);
+				buf_remux_audio.entry_info[buf_remux_audio.entry_info_num].time = t_htonl((buf_remux_audio.entry_info_num) * ONE_SECOND_DURATION);
+				buf_remux_audio.entry_info[buf_remux_audio.entry_info_num].traf_number = 1;	
+				buf_remux_audio.entry_info[buf_remux_audio.entry_info_num].trun_number = 1;
+				buf_remux_audio.entry_info[buf_remux_audio.entry_info_num].sample_number = 1;
+				buf_remux_audio.entry_info_num ++;
 				pthread_mutex_unlock(&buf_remux_audio.mut);
 			}
 		
@@ -1756,7 +1802,7 @@ void * remuxVideoAudio(void *args)
 	//最后写入一个结束box     		mfra box及其子box 
 	mfra_box *mfraBox = NULL; 
 	unsigned int mfraBox_len = 0;
-	unsigned int mfre_ret = mfra_box_rebuid(mfraBox,&mfraBox_len);
+	unsigned int mfre_ret = mfra_box_rebuid(&mfraBox,&mfraBox_len);
 	
 	fmp4_file_lable.mfraBox_offset =  (out_mode == SAVE_IN_FILE)?\
 									  ftell(file_handle):\
@@ -1865,6 +1911,7 @@ int remux_init(unsigned int Vframe_rate,unsigned int Aframe_rate)
 	memset(buf_remux_video.sample_info,0,TRUN_VIDEO_MAX_SAMPLES);
 	buf_remux_video.write_index = 0;
 	buf_remux_video.read_index = 0;
+	memset(buf_remux_video.entry_info,0,MAX_MOOF_MDAT_NUM);
 	pthread_mutex_init(&buf_remux_video.mut,NULL);
 	//buf_remux_video.cond_ready = PTHREAD_COND_INITIALIZER;
 

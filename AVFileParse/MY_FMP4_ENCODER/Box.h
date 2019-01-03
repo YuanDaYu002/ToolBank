@@ -132,16 +132,17 @@ typedef struct TrackFragmentRandomAccessBox_t
 {
 	FullBoxHeader_t 	header;
 	unsigned int 		track_ID;
-	const unsigned char reserved[26];
-	unsigned char 		length_size_of_traf_num[2];
-	unsigned char 		length_size_of_trun_num[2];
-	unsigned char 		length_size_of_sample_num[2];
+	//const unsigned char reserved[26];
+	const unsigned char reserved[1];
+	unsigned char 		length_size_of_traf_num[1];
+	unsigned char 		length_size_of_trun_num[1];
+	unsigned char 		length_size_of_sample_num[1];
 	unsigned int 		number_of_entry;  /*number_of_entry是一个整数，它给出了入口的条目数（moof数）。如果这个值是零，它
 											指示每个样本都是同步样本，后面没有表项。
 										   */
 	
 	//for(i=1; i <= number_of_entry; i++){
-	/*
+	/*放在后边，单独处理
 	unsigned int 		time;
 	unsigned int 		moof_offset;
 	unsigned int((length_size_of_traf_num+1) * 8) traf_number;
@@ -150,6 +151,20 @@ typedef struct TrackFragmentRandomAccessBox_t
 	*/
 	//}
 }tfra_box;
+
+typedef struct _tfra_entry_info_t
+{
+	//采用flag = 0的模式
+	unsigned int 		time;
+	unsigned int 		moof_offset;
+	//unsigned int((length_size_of_traf_num+1) * 8) traf_number;
+	unsigned char traf_number;
+	//unsigned int((length_size_of_trun_num+1) * 8) trun_number;
+	unsigned char trun_number;
+	//unsigned int((length_size_of_sample_num+1) * 8) sample_number;
+	unsigned char sample_number;
+	unsigned char please_delete;	// + 1字节（字节对齐）实际填充时该字节需要减去
+}tfra_entry_info_t;
 
 typedef struct MovieFragmentRandomAccessOffsetBox_t
 {

@@ -245,6 +245,9 @@ H264: MAX ： 30帧/s
 */
 #define TRUN_VIDEO_MAX_SAMPLES (40)
 
+//最大能产生的moof+mdat结构个数，超过该值会出错（一秒一个，60代表能录制60S）。
+#define MAX_MOOF_MDAT_NUM (60)
+
 
 
 //写入mdat box中的每个sample的描述信息（放在trun box中）
@@ -270,6 +273,9 @@ typedef struct _buf_remux_video_t
 	unsigned char read_index;	//sample_info数组的即将要读的下标
 	unsigned char need_remux;	//buf已经缓冲好1S的samples,需要将完整的 moof+mdat box 写入到文件
 	unsigned char reserved[2];
+	tfra_entry_info_t entry_info[MAX_MOOF_MDAT_NUM];
+	unsigned int entry_info_num;
+
 	pthread_mutex_t mut;		//读写锁
 //	pthread_cond_t remux_ready;
 }buf_remux_video_t;
@@ -290,6 +296,8 @@ typedef struct _buf_remux_audio_t
 	unsigned char read_index;	//sample_info数组的即将要读的下标
 	unsigned char need_remux;	//buf已经缓冲好1S的samples,需要将完整的 moof+mdat box 写入到文件
 	unsigned char reserved;
+	tfra_entry_info_t entry_info[MAX_MOOF_MDAT_NUM];
+	unsigned int entry_info_num;
 	pthread_mutex_t mut;		//读写锁
 //	pthread_cond_t remux_ready;
 	
