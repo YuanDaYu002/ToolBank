@@ -1063,7 +1063,8 @@ int	remuxVideo(void *video_frame,unsigned int frame_length,unsigned int frame_ra
 		isDependedOn = 1;
 		isNonSync = 0;
 
-		#if 0
+		#define ENABLE_CUT_SPS_PPS 0  //使能：裁剪掉sps pps， 并用4字节大小填充帧头
+		#if ENABLE_CUT_SPS_PPS
 		//只接受 I/P帧，对IDR帧之前的PPS SPS SEI做剔除
 		video_frame = video_frame + 37;//37字节为海思编码IDR帧的SPS + PPS + SEI总长度
 		frame_length = frame_length - 37;
@@ -1112,7 +1113,7 @@ int	remuxVideo(void *video_frame,unsigned int frame_length,unsigned int frame_ra
             IFrameLen[2] = (frame_length-4) >>8;  
             IFrameLen[3] = (frame_length-4) &0xff;
             */
-           #if 0
+           #if ENABLE_CUT_SPS_PPS
            // DEBUG_LOG("current actual frame len (%d)\n",frame_length-4);
             unsigned int data_len = t_htonl(frame_length-4);
             memcpy(buf_remux_video.write_pos,&data_len,4);
