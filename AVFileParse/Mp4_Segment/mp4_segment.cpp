@@ -1,7 +1,7 @@
 #include "mp4_segment.h"
 
-#define ATOM_PREAMBLE_SIZE		8	// å¤´éƒ¨ä¸º8ä¸ªå­—èŠ‚;
-#define MAX_TRACKS				8	// è½¨é“æœ€å¤§æ•°;
+#define ATOM_PREAMBLE_SIZE		8	// Í·²¿Îª8¸ö×Ö½Ú;
+#define MAX_TRACKS				8	// ¹ìµÀ×î´óÊý;
 
 struct atom_t
 {
@@ -100,7 +100,7 @@ static int ReadInt8(IN unsigned char const* buffer)
 	return buffer[0];
 }
 
-// buffer[0~4]->int32 å¤§ç«¯å­—èŠ‚åºè½¬æ¢æˆå°ç«¯å­—èŠ‚åº
+// buffer[0~4]->int32
 static int ReadInt32(IN void const* buffer)
 {
 	unsigned char* p = (unsigned char*)buffer;
@@ -365,8 +365,8 @@ unsigned int GetSttsSample(IN unsigned char const* stts, IN unsigned int time)
 	unsigned int entries = GetSttsEntries(stts);
 	for (unsigned int stts_index = 0; stts_index != entries; ++stts_index)
 	{
-		unsigned int sample_count = 0;		// å¸§æ•°;
-		unsigned int sample_delta = 0;		// æ¯ä¸ªå¸§åŒ…å«å¤šå°‘æ ·æœ¬;
+		unsigned int sample_count = 0;		// Ö¡Êý;
+		unsigned int sample_delta = 0;		// Ã¿¸öÖ¡°üº¬¶àÉÙÑù±¾;
 		GetSttsSampleInfo(stts, stts_index, &sample_count, &sample_delta);
 		if (time_count + sample_delta * sample_count >= time)
 		{
@@ -701,7 +701,7 @@ void BuildTrakIndex(IN trak_t* trak)
 	}
 }
 
-// write trak index : ä¿®æ”¹trakæ‰€æœ‰å¯¹åº”å…³ç³»;
+// write trak index : ÐÞ¸ÄtrakËùÓÐ¶ÔÓ¦¹ØÏµ;
 void WriteTrakIndex(OUT trak_t* trak, IN unsigned int start, IN unsigned int end)
 {
 	// in stts, we write samples sample_count and sample_duration
@@ -882,7 +882,7 @@ void WriteTrakIndex(OUT trak_t* trak, IN unsigned int start, IN unsigned int end
 	}
 }
 
-// prase moov: buffer->moov  æˆåŠŸï¼šè¿”1 å¤±è´¥ï¼šè¿”0
+// prase moov: buffer->moov
 int ParseMoov(OUT moov_t* moov, IN unsigned char* buffer, IN unsigned int size)
 {
 	atom_t leaf_atom;
@@ -890,9 +890,9 @@ int ParseMoov(OUT moov_t* moov, IN unsigned char* buffer, IN unsigned int size)
 	moov->start_ = buffer;
 	while (buffer < buffer_start + size)
 	{
-		buffer = ReadHeader(buffer, &leaf_atom);//è¯»8å­—èŠ‚çš„boxå¤´ï¼Œå¯»æ‰¾ cmov  mvhd       	trak
+		buffer = ReadHeader(buffer, &leaf_atom);
 		PrintInfo(&leaf_atom);
-		if (CompareType(&leaf_atom, "cmov"))//å¥½åƒæ²¡æœ‰è¿™æ ·çš„boxç±»åž‹
+		if (CompareType(&leaf_atom, "cmov"))
 		{
 			return 0;
 		}
@@ -904,7 +904,7 @@ int ParseMoov(OUT moov_t* moov, IN unsigned char* buffer, IN unsigned int size)
 		{
 			if (moov->tracks_ == MAX_TRACKS)
 				return 0;
-			else	//è§£æžè½¨é“
+			else
 			{
 				trak_t* trak = &moov->traks_[moov->tracks_];
 				InitTrak(trak);
@@ -912,7 +912,7 @@ int ParseMoov(OUT moov_t* moov, IN unsigned char* buffer, IN unsigned int size)
 				++moov->tracks_;
 			}
 		}
-		buffer = ToEnd(&leaf_atom);//è·³è½¬åˆ°è¯¥boxçš„ç»“å°¾å¤„ï¼ˆä¸‹ä¸€ä¸ªboxçš„å¼€å§‹å¤„ï¼‰
+		buffer = ToEnd(&leaf_atom);
 	}
 
 	// build the indexing tables
@@ -927,7 +927,7 @@ int ParseMoov(OUT moov_t* moov, IN unsigned char* buffer, IN unsigned int size)
 	return 1;
 }
 
-// write stco offsets: å°±æ˜¯æŠŠæ‰€æœ‰chunkçš„åç§»é‡éƒ½åŠ offse;
+// write stco offsets: ¾ÍÊÇ°ÑËùÓÐchunkµÄÆ«ÒÆÁ¿¶à¼Óoffse;
 void WriteStcoOffsets(OUT unsigned char* stco, IN int offset)
 {
 	unsigned int entries = ReadInt32(stco + 4);
@@ -1018,7 +1018,7 @@ unsigned int GetStssSample(IN unsigned char const* stss, IN unsigned int idx)
 // get the keyframe(nearest) of stss;
 unsigned int GetStssNearestKeyFrame(IN unsigned char const* stss, IN unsigned int sample)
 {
-	// åœ¨æ ·æœ¬æ•°é‡ä¹‹å‰æ‰«æåŒæ­¥æ ·æœ¬æŸ¥æ‰¾å…³é”®å¸§;
+	// ÔÚÑù±¾ÊýÁ¿Ö®Ç°É¨ÃèÍ¬²½Ñù±¾²éÕÒ¹Ø¼üÖ¡;
 	// scan the sync samples to find the key frame that precedes the sample number
 	unsigned int i = 0;
 	unsigned int entries = GetStssEntries(stss);
@@ -1045,7 +1045,7 @@ unsigned int GetStblNearestKeyFrame(IN stbl_t const* stbl, IN unsigned int sampl
 	// If the sync atom is not present, all samples are implicit sync samples.
 	if (!stbl->stss_)
 	{
-		// å¯¹äºŽéŸ³é¢‘, æ²¡æœ‰å…³é”®å¸§åˆ™è¿”å›žå½“å‰;
+		// ¶ÔÓÚÒôÆµ, Ã»ÓÐ¹Ø¼üÖ¡Ôò·µ»Øµ±Ç°;
 		return sample;
 	}
 
@@ -1078,12 +1078,12 @@ unsigned int SeekMoov(unsigned char* moov_data, unsigned int size,
 
 		// for every trak, convert seconds to sample (time-to-sample).
 		// adjust sample to keyframe
-		unsigned int trak_sample_start[MAX_TRACKS] = { 0 };	// ç‚¹æ’­æ‹–åŠ¨start_timeæ—¶, å¸§çš„èµ·å§‹ä½ç½®;
-		unsigned int trak_sample_end[MAX_TRACKS] = { 0 };	// ç‚¹æ’­æ‹–åŠ¨start_timeæ—¶, å¸§çš„ç»“æŸä½ç½®;
+		unsigned int trak_sample_start[MAX_TRACKS] = { 0 };	// µã²¥ÍÏ¶¯start_timeÊ±, Ö¡µÄÆðÊ¼Î»ÖÃ;
+		unsigned int trak_sample_end[MAX_TRACKS] = { 0 };	// µã²¥ÍÏ¶¯start_timeÊ±, Ö¡µÄ½áÊøÎ»ÖÃ;
 		unsigned int moov_duration = 0;
 
-		// è¿™é‡Œé»˜è®¤å‰ä¸¤ä¸ªè½¨é“ä¸ºéŸ³ã€è§†é¢‘è½¨é“;
-		// åŽé¢çš„éƒ½è®¾ç½®ä¸ºfreeè¿‡æ»¤ï¼Œæœ€åŽåªä¿ç•™ä¸¤ä¸ªè½¨é“;
+		// ÕâÀïÄ¬ÈÏÇ°Á½¸ö¹ìµÀÎªÒô¡¢ÊÓÆµ¹ìµÀ;
+		// ºóÃæµÄ¶¼ÉèÖÃÎªfree¹ýÂË£¬×îºóÖ»±£ÁôÁ½¸ö¹ìµÀ;
 		if (moov->tracks_ > 2)
 		{
 			for (unsigned int i = 2; i != moov->tracks_; ++i)
@@ -1097,7 +1097,7 @@ unsigned int SeekMoov(unsigned char* moov_data, unsigned int size,
 			moov->tracks_ = 2;
 		}
 
-		// èŽ·å–å¸§çš„èµ·å§‹ä½ç½®;
+		// »ñÈ¡Ö¡µÄÆðÊ¼Î»ÖÃ;
 		for (unsigned int i = 0; i != moov->tracks_; ++i)
 		{
 			trak_t* trak = &moov->traks_[i];
@@ -1129,12 +1129,12 @@ unsigned int SeekMoov(unsigned char* moov_data, unsigned int size,
 
 			if (start_sample >= end_sample)
 			{
-				// è‹¥è®¡ç®—å‡ºé”™é€€å‡º;
+				// Èô¼ÆËã³ö´íÍË³ö;
 				return 0;
 			}
 			WriteTrakIndex(trak, start_sample, end_sample);
 
-			// è®¡ç®—çœŸå®žæ•°æ®å‰åŽè·³è¿‡çš„å­—èŠ‚æ•°;
+			// ¼ÆËãÕæÊµÊý¾ÝÇ°ºóÌø¹ýµÄ×Ö½ÚÊý;
 			{
 				int iFirstIndex = 0;
 				int iLastIndex = trak->samples_count_-1;
@@ -1152,7 +1152,7 @@ unsigned int SeekMoov(unsigned char* moov_data, unsigned int size,
 				printf("Trak end   skip %u bytes\n", endskip);
 			}
 
-			// write duration(æ’­æ”¾æ—¶é—´);
+			// write duration(²¥·ÅÊ±¼ä);
 			{
 				// fixup trak (duration);
 				unsigned int trak_duration = GetSttsDuration(stbl->stts_);
@@ -1211,24 +1211,24 @@ bool mp4_segment(OUT mp4Buffer& outMp4, mp4Buffer& inMp4, float iStartTime, floa
 	unsigned char* pBegin = inMp4.m_pBuff;
 	unsigned char* pData = pBegin;
 	unsigned char* pEnd = pBegin + inMp4.m_iSize;
-	while (pData < pEnd)//éåŽ†å®Œæ‰€æœ‰çš„box å¯»æ‰¾ moov box å’Œ mdat box 
+	while (pData < pEnd)
 	{
 		atom_t tempAtom;
-		pData = ReadHeader(pData, &tempAtom);//è§£æžboxå¤´éƒ¨ï¼Œå‰8å­—èŠ‚éƒ½æ˜¯box çš„å¤´éƒ¨ï¼Œ boxsize å’Œ boxtype
+		pData = ReadHeader(pData, &tempAtom);
 		if (CompareType(&tempAtom, "moov"))
 		{
 			moov_data = pData;
 			size = tempAtom.size_ - ATOM_PREAMBLE_SIZE;
-		} 
+		}
 		else if (CompareType(&tempAtom, "mdat"))
 		{
 			mdat_start = (unsigned char*)pData;
 			mdat_size = tempAtom.size_;
 		}
-		pData += tempAtom.size_ - ATOM_PREAMBLE_SIZE;//æ¯æ¬¡æ¯”è¾ƒåŽå¾€åŽè·³è½¬å½“å‰boxçš„é•¿åº¦ï¼ˆReadHeaderï¼ˆï¼‰ å¤šè·³è½¬äº† ATOM_PREAMBLE_SIZEï¼Œè¿™é‡Œè¦å‡å›žæ¥ï¼‰
+		pData += tempAtom.size_ - ATOM_PREAMBLE_SIZE;
 	}
 
-	SeekMoov(moov_data, size, start_time, end_time, mdat_start, mdat_size, offset); //
+	SeekMoov(moov_data, size, start_time, end_time, mdat_start, mdat_size, offset);
 
 	{
 		pData = pBegin;

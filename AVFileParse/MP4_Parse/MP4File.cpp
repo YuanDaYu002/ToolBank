@@ -47,13 +47,13 @@ bool CMP4File::LoadFile(byte* pData, int iDataSize)
 	byteptr pEnd = pCur + iDataSize;
 	while (pCur < pEnd)
 	{
-		BaseBox* pBox = BaseBox::GetBoxFromFile(pCur);//查找文件中的box并创建一个对应的box
+		BaseBox* pBox = BaseBox::GetBoxFromFile(pCur);
 		if (pBox)
 		{
 			int iParseSize = pBox->ParseBox(pCur);
 			if (iParseSize != pBox->m_iBoxSize)
 			{
-				printf("CMP4File::ParseFile： iParseSize != pBox->m_iBoxSize: %s \n", pBox->m_strBoxType.c_str());
+				printf("CMP4File::ParseFile�� iParseSize != pBox->m_iBoxSize: %s \n", pBox->m_strBoxType.c_str());
 				delete pBox;
 				return false;
 			}

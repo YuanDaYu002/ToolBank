@@ -12,20 +12,19 @@ BaseBox::~BaseBox()
 }
 
 BaseBox* BaseBox::GetBoxFromFile(byteptr &pData)
-{	
-	//è§£æboxçš„Headerï¼Œsizeå’Œtype å„4å­—èŠ‚
+{
 	int iBoxSize = BytesToIntEx(pData, BOXSIZE_SIZE);
 	string strBoxType = BytesToStrEx(pData, BOXTYPE_SIZE);
 
 	BaseBox* pBox = AfxCreateBox(strBoxType);
 	if (pBox)
 	{
-		// å¤šè¯»äº†8ä¸ªå­—èŠ‚ æ’¤å›å»;
+		// ¶à¶ÁÁË8¸ö×Ö½Ú ³·»ØÈ¥;
 		pData -= BOXHEADER_SIZE;
 	}
 	else
 	{
-		// ä¸è¯†åˆ«çš„ç±»å‹è·³è¿‡;
+		// ²»Ê¶±ğµÄÀàĞÍÌø¹ı;
 		pData += iBoxSize - BOXHEADER_SIZE;
 		printf(" find unknown type : %s, %d bytes. \n", strBoxType.c_str(), iBoxSize);
 
@@ -130,7 +129,7 @@ std::string BaseBox::BytesToStr(char* pByte, int iCount)
 int BaseBox::ParseBox(byteptr &pData)
 {
 	byteptr pBegin = pData;
-	int iHeaderSize = ParseHeader(pData);//è§£ææ‰å¤´éƒ¨
+	int iHeaderSize = ParseHeader(pData);
 	byteptr pEnd = pData + (m_iBoxSize - iHeaderSize);
 
 	int iAttrsSize = ParseAttrs(pData);
@@ -140,8 +139,8 @@ int BaseBox::ParseBox(byteptr &pData)
 
 		if ((iAttrsSize <= 0) && (iChildSize <= 0))
 		{
-			// è‹¥iAttrsSizeå’ŒiChildSizeåŒæ—¶ä¸º0;
-			// é¿å…æ­»å¾ªç¯åº”è¯¥è¿‡æ»¤;
+			// ÈôiAttrsSizeºÍiChildSizeÍ¬Ê±Îª0;
+			// ±ÜÃâËÀÑ­»·Ó¦¸Ã¹ıÂË;
 			pData = pEnd;
 		}
 	}

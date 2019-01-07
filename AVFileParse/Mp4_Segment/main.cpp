@@ -25,7 +25,7 @@ int main()
 	inBuffer.m_iSize = iSize;
 	mp4Buffer outBuffer;
 
-	// åˆ†å‰²120.0~200ç§’
+	// ·Ö¸î120.0~200Ãë
 	mp4_segment(outBuffer, inBuffer, 120.0, 200.0);
 
 	{

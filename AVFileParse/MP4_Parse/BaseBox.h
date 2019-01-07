@@ -30,10 +30,10 @@ struct box_header
 };
 
 /********************************************************************************************
-**		å­—æ®µåç§°			|	é•¿åº¦(bytes)	|		æœ‰å…³æè¿°
+**		×Ö¶ÎÃû³Æ			|	³¤¶È(bytes)	|		ÓĞ¹ØÃèÊö
 --------------------------------------------------------------------------------------------
-**		boxsize				|	4			|		boxçš„é•¿åº¦
-**		boxtype				|	4			|		boxçš„ç±»å‹
+**		boxsize				|	4			|		boxµÄ³¤¶È
+**		boxtype				|	4			|		boxµÄÀàĞÍ
 ********************************************************************************************/
 class BaseBox
 {
@@ -41,34 +41,34 @@ public:
 	BaseBox();
 	virtual ~BaseBox();
 
-	// æ ¹æ®æ–‡ä»¶ä¿¡æ¯è·å– å¯¹è±¡ç»“æ„ä½“;
+	// ¸ù¾İÎÄ¼şĞÅÏ¢»ñÈ¡ ¶ÔÏó½á¹¹Ìå;
 	static BaseBox* GetBoxFromFile(byteptr &pData);
 
-	// å°†pDataåçš„iCountå­—èŠ‚è½¬æ¢ä¸ºæ•°å­—
-	// bOffset è½¬æ¢åpDataæ˜¯å¦åç§»iCountä¸ªå­—èŠ‚;
-	// bBigEndian å¤§ç«¯æ’åº;
+	// ½«pDataºóµÄiCount×Ö½Ú×ª»»ÎªÊı×Ö
+	// bOffset ×ª»»ºópDataÊÇ·ñºóÒÆiCount¸ö×Ö½Ú;
+	// bBigEndian ´ó¶ËÅÅĞò;
 	static int BytesToIntEx(byteptr &pData, int iCount, bool bOffset = true, bool bBigEndian = true);
 
 	static int BytesToInt(byte arrByte[], int iCount);
 
-	// å°†pDataåçš„iCountå­—èŠ‚è½¬æ¢ä¸ºå­—ç¬¦ä¸²;
-	// bOffset è½¬æ¢åpDataæ˜¯å¦åç§»iCountä¸ªå­—èŠ‚;
+	// ½«pDataºóµÄiCount×Ö½Ú×ª»»Îª×Ö·û´®;
+	// bOffset ×ª»»ºópDataÊÇ·ñºóÒÆiCount¸ö×Ö½Ú;
 	static std::string BytesToStrEx(byteptr &pData, int iCount, bool bOffset = true);
 
 	static std::string BytesToStr(byte arrByte[], int iCount);
 
 	static std::string BytesToStr(char* pByte, int iCount);
 
-	// iM, iNåˆ†åˆ«å¯¹åº”æ•´æ•°ã€å°æ•°ä½æ•°;
+	// iM, iN·Ö±ğ¶ÔÓ¦ÕûÊı¡¢Ğ¡ÊıÎ»Êı;
 	static double BytesToDoubleEx(byteptr &pData, int iM, int iN, bool bOffset = true);
 
-	// iM, iNåˆ†åˆ«å¯¹åº”æ•´æ•°ã€å°æ•°ä½æ•°;
+	// iM, iN·Ö±ğ¶ÔÓ¦ÕûÊı¡¢Ğ¡ÊıÎ»Êı;
 	static double BytesToDouble(byte arrByte[], int iM, int iN);
 
-	// å°†iPosåçš„iCountä½æ•°è½¬åŒ–ä¸ºæ•°å­—(æ­¤å¤„æŒ‰æ¯”ç‰¹å¤„ç†);
+	// ½«iPosºóµÄiCountÎ»Êı×ª»¯ÎªÊı×Ö(´Ë´¦°´±ÈÌØ´¦Àí);
 	static int BitsToIntEx(byteptr &pData, int iPos, int iCount, bool bOffset = true);
 
-	// è§£æå®Œæ¯•å, è¿”å›è§£æçš„æ€»å­—èŠ‚æ•°;
+	// ½âÎöÍê±Ïºó, ·µ»Ø½âÎöµÄ×Ü×Ö½ÚÊı;
 	virtual int ParseBox(byteptr &pData);
 
 protected:
@@ -80,8 +80,8 @@ protected:
 	static BaseBox* CreateObject();
 
 public:
-	int			m_iBoxSize;				// Box å¤§å°;
-	string		m_strBoxType;			// Box ç±»å‹;
+	int			m_iBoxSize;				// Box ´óĞ¡;
+	string		m_strBoxType;			// Box ÀàĞÍ;
 
-	VecBoxs		m_vecBoxs;				// å­ Box;
+	VecBoxs		m_vecBoxs;				// ×Ó Box;
 };

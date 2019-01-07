@@ -17,18 +17,18 @@ struct mp4Buffer
 };
 
 /************************************************************************************************************
-*	@brief		: åˆ†å‰²mp4æ–‡ä»¶(æˆªå–iStartTime~iEndTimeç§’å†…çš„éŸ³è§†é¢‘æ•°æ®å¹¶é‡æ–°ç»„è£…æˆå°çš„mp4æ–‡ä»¶)
+*	@brief		: ·Ö¸împ4ÎÄ¼ş(½ØÈ¡iStartTime~iEndTimeÃëÄÚµÄÒôÊÓÆµÊı¾İ²¢ÖØĞÂ×é×°³ÉĞ¡µÄmp4ÎÄ¼ş)
 *	@author		: sunc
 *	@date		: 2017/7/17 17:33
 *	@version	: ver 1.0
 *	@param		: 
-				outMp4		:		è¾“å‡ºçš„mp4buffer
-				inMp4		:		è¾“å…¥çš„mp4buffer
-				fStartTime	:		æˆªå–çš„å¼€å§‹æ—¶é—´;
-				fEndTime	:		æˆªå–çš„ç»“æŸæ—¶é—´;
+				outMp4		:		Êä³öµÄmp4buffer
+				inMp4		:		ÊäÈëµÄmp4buffer
+				fStartTime	:		½ØÈ¡µÄ¿ªÊ¼Ê±¼ä;
+				fEndTime	:		½ØÈ¡µÄ½áÊøÊ±¼ä;
 
 *	@return	:
-				æˆåŠŸè¿”å›true, å¤±è´¥è¿”å›false;
+				³É¹¦·µ»Øtrue, Ê§°Ü·µ»Øfalse;
 
 ************************************************************************************************************/
 bool mp4_segment(OUT mp4Buffer& outMp4, IN mp4Buffer& inMp4, IN float fStartTime, IN float fEndTime);

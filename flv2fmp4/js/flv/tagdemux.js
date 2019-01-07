@@ -200,9 +200,9 @@ class tagDemux {
         // 获取 video tag body 第一字节
         const spec = (new Uint8Array(arrayBuffer, dataOffset, dataSize))[0];
         // 获取是否是关键帧
-        const frameType = (spec & 240) >>> 4;
+        const frameType = (spec & 240) >>> 4;//240: F0  : 1111 0000
         // 获取编码格式
-        const codecId = spec & 15;
+        const codecId = spec & 15; //15: F : 0000 1111
 
         if (codecId !== 7) {
             if(this._onError)
@@ -284,6 +284,7 @@ class tagDemux {
             }
         }
 
+		//语法：dataView.getUint8(byteOffset) 
         const version = v.getUint8(0); // configurationVersion
         const avcProfile = v.getUint8(1); // avcProfileIndication
         const profileCompatibility = v.getUint8(2); // profile_compatibility

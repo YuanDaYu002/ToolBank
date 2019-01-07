@@ -391,7 +391,7 @@ class MP4Remuxer {
             return;
         }
 
-        const bytes = 8 + videoTrack.length;
+        const bytes = 8 + videoTrack.length; //8字节的box头
         const mdatbox = new Uint8Array(bytes);
         mdatbox[0] = (bytes >>> 24) & 0xFF;
         mdatbox[1] = (bytes >>> 16) & 0xFF;
@@ -404,10 +404,13 @@ class MP4Remuxer {
         const info = new MediaSegmentInfo();
 
         while (samples.length) {
-            const avcSample = samples.shift();
+            const avcSample = samples.shift();//把数组的第一个元素从其中删除，并返回第一个元素的值
             const keyframe = avcSample.isKeyframe;
-            const originalDts = avcSample.dts - this._dtsBase;
 
+			//最初始的dts(默认计算到该样本的尾巴上的dts)
+            const originalDts = avcSample.dts - this._dtsBase;//this._dtsBase应该是每组moof第一个sample的开始时间
+
+			//	计算dts修正量 : dtsCorrection
             if (dtsCorrection == undefined) {
                 if (this._videoNextDts == undefined) {
                     if (this._videoSegmentInfoList.isEmpty()) {
@@ -415,12 +418,14 @@ class MP4Remuxer {
                     } else {
                         const lastSample = this._videoSegmentInfoList.getLastSampleBefore(originalDts);
                         if (lastSample != null) {
+							//该帧占用的时间长度
                             let distance = (originalDts - (lastSample.originalDts + lastSample.duration));
                             if (distance <= 3) {
                                 distance = 0;
                             }
+							//期望正确的dts
                             const expectedDts = lastSample.dts + lastSample.duration + distance;
-                            dtsCorrection = originalDts - expectedDts;
+                            dtsCorrection = originalDts - expectedDts;//计算dts的修正量
                         } else { // lastSample == null
                             dtsCorrection = 0;
                         }
@@ -430,7 +435,8 @@ class MP4Remuxer {
                 }
             }
 
-            const dts = originalDts - dtsCorrection;
+			//
+            const dts = originalDts - dtsCorrection;//dts进行了修正
             const cts = avcSample.cts;
             const pts = dts + cts;
 
@@ -449,6 +455,7 @@ class MP4Remuxer {
                 sampleSize += data.byteLength;
             }
 
+			//计算 sampleDuration
             let sampleDuration = 0;
 
             if (samples.length >= 1) {
@@ -485,8 +492,10 @@ class MP4Remuxer {
                 }
             };
 
-            mp4Samples.push(mp4Sample);
+            mp4Samples.push(mp4Sample); 
         }
+
+		
         const latest = mp4Samples[mp4Samples.length - 1];
         lastDts = latest.dts + latest.duration;
         lastPts = latest.pts + latest.duration;
