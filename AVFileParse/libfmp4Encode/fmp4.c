@@ -75,7 +75,7 @@ trak_video_t*	trak_video_init(trak_video_init_t*args)
 		return NULL;
 	}
 
-	trakVideo.hdlrBox = hdlr_box_init();
+	trakVideo.hdlrBox = hdlr_box_init(VIDEO_HANDLER);
 	if(NULL == trakVideo.hdlrBox)
 	{
 		ERROR_LOG("hdlr_box_init failed!\n");
@@ -208,7 +208,7 @@ trak_audio_t*	trak_audio_init(trak_audio_init_t*args)
 	}
 
 	
-	trakAudio.hdlrBox = hdlr_box_init();
+	trakAudio.hdlrBox = hdlr_box_init(AUDIO_HANDLER);
 	if(NULL == trakAudio.hdlrBox)
 	{
 		ERROR_LOG("hdlr_box_init failed !\n");

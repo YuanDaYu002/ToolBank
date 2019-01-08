@@ -593,8 +593,10 @@ mdhd_box* mdhd_box_init(unsigned int timescale,unsigned int duration)
 	
 }
 
-hdlr_box*	hdlr_box_init()
+hdlr_box*	hdlr_box_init(unsigned int handler_type)
 {
+	unsigned char HandlerType[4] = {0};
+	
 	unsigned char HDLR[] = {
             0x00, 0x00, 0x00, 0x00, // version(0) + flags
             0x00, 0x00, 0x00, 0x00, // pre_defined
@@ -617,6 +619,22 @@ hdlr_box*	hdlr_box_init()
 	hdlr_item->header.size = t_htonl(box_length);
 	strncpy(hdlr_item->header.type,"hdlr",4);
 	memcpy((unsigned char*)hdlr_item + 8,HDLR,sizeof(HDLR));
+
+	if(handler_type == VIDEO_HANDLER)
+	{
+		//默认就是 video ,啥都不用做
+	}
+	else  //音频 hdlr box
+	{
+		
+		unsigned char tmp_handler[4] = {0x73,0x6F,0x75,0x6E}; //字符串：soun  
+		memcpy(&hdlr_item->handler_type ,tmp_handler,4);
+		unsigned char name[] = {0x53,0x6F,0x75,0x6E,0x64,0x48,0x61,0x6E,0x64,0x6C,0x65,0x72,0x00}; //字符串：SoundHandler
+		memcpy(hdlr_item->name,name,sizeof(name));
+		//重新修正长度信息，其实是一样长的。
+		DEBUG_LOG("hdlr_item->header.size = %d\n",sizeof(hdlr_box) + sizeof(name));
+		hdlr_item->header.size = t_htonl(sizeof(hdlr_box) + sizeof(name));
+	}
 	
 	return hdlr_item;
 	

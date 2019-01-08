@@ -309,7 +309,7 @@ typedef struct HandlerReferenceBox_t
 	unsigned int  		reserved[3]; //3*4保留位
 
 	//string   name;
-	//char name[0];//name,长度不定以'\0'结尾 ,占位
+	char name[0];//name,长度不定以'\0'结尾 ,占位
 	
 }hdlr_box;
 
@@ -845,7 +845,10 @@ tfdt_box*	tfdt_box_init(int baseMediaDecodeTime);
 sdtp_box*	sdtp_box_init();
 trun_box*	trun_box_init();
 mdhd_box* mdhd_box_init(unsigned int timescale,unsigned int duration);
-hdlr_box*	hdlr_box_init();
+
+#define VIDEO_HANDLER 1
+#define AUDIO_HANDLER 2
+hdlr_box*	hdlr_box_init(unsigned int handler_type);
 minf_box*	minf_box_init(unsigned int box_length);
 vmhd_box* vmhd_box_init();
 smhd_box*	smhd_box_init();
