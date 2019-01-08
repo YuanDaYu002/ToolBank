@@ -771,6 +771,7 @@ stsd_box*  AudioSampleEntry(unsigned char channelCount,unsigned short sampleRate
            - esds
 	*/
 	const unsigned char mp4a[] = {
+			//---前边是header------------------
 			0x00, 0x00, 0x00, 0x00, // reserved(4) 6个字节，设置为0；
 		   	0x00, 0x00, 	// reserved(2)
 		   	0x00, 0x01,  	// data_reference_index(2)
@@ -875,7 +876,7 @@ stsd_box*  AudioSampleEntry(unsigned char channelCount,unsigned short sampleRate
 
 	//构造 stsd box
 	//DEBUG_LOG("sizeof(stsd_box) = %d\n",sizeof(stsd_box));
-	int stsd_box_size = sizeof(stsd_box)+ 4 + mp4a_length + esds_length; //+4为和解析器格式兼容
+	int stsd_box_size = sizeof(stsd_box) + mp4a_length + esds_length; 
 	DEBUG_LOG("stsd_item malloc size(%d)\n",stsd_box_size);
 	stsd_box* stsd_item = (stsd_box*)malloc(stsd_box_size);
 	if(NULL == stsd_item)
@@ -886,14 +887,17 @@ stsd_box*  AudioSampleEntry(unsigned char channelCount,unsigned short sampleRate
 	}
 	memset(stsd_item,0,stsd_box_size);
 
-	unsigned int offset = sizeof(FullBoxHeader_t) + 4;//+4为和解析器格式兼容
+	stsd_item->entry_count = t_htonl(1); //entry的个数 默认赋值成 1
+	unsigned int offset = sizeof(stsd_box);//偏移到mp4a box的开始位置
 	//拷贝mp4a
+	//先修正 MP4a box的长度
+	mp4a_item->sample_entry.header.size = t_htonl(mp4a_length +  esds_length);
 	memcpy((unsigned char*)stsd_item + offset,mp4a_item,mp4a_length);
-	unsigned int tmp = (unsigned char*)stsd_item + sizeof(FullBoxHeader_t) + mp4a_length + esds_length - (unsigned char*)stsd_item;
+	offset += mp4a_length;
+	unsigned int tmp = (unsigned char*)stsd_item + sizeof(stsd_box) + mp4a_length + esds_length - (unsigned char*)stsd_item;
 	DEBUG_LOG("tmp = %d\n",tmp);
 	
 	//拷贝 esds
-	offset += mp4a_length;
 	memcpy((unsigned char*)stsd_item + offset ,esds_item,esds_length);
 
 	
@@ -901,8 +905,7 @@ stsd_box*  AudioSampleEntry(unsigned char channelCount,unsigned short sampleRate
 	stsd_item->header.size = t_htonl(stsd_box_size);
 	strncpy(stsd_item->header.type,"stsd",4);
 
-	//先修正 MP4a box的长度
-	mp4a_item->sample_entry.header.size = t_htonl(mp4a_length + esds_length);
+	
 
 	
 	free(esds_item);
@@ -1224,7 +1227,7 @@ int FrameType(unsigned char* naluData)
     else if(naluData[0]==0 && naluData[1]==0 && naluData[2]==0 && naluData[3]==1 && naluData[4]==0x61)
     {
         index = NALU_P;
-       printf("---NALU_P---\n");
+       //printf("---NALU_P---\n");
     }
     else if(naluData[0]==0 && naluData[1]==0 && naluData[2]==0 && naluData[3]==1 && naluData[4]==0x6)
     {

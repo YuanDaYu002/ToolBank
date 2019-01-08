@@ -9,7 +9,7 @@
 #define VIDEO_TRACK 1   //视频轨道
 #define AUDIO_TRACK 2   //音频轨道
 #define HAVE_VIDEO 1
-#define HAVE_AUDIO 0
+#define HAVE_AUDIO 1
 
 #define OUT  //标记为输出参数
 #define IN	 //标记为输入参数

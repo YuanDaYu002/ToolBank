@@ -1072,14 +1072,14 @@ int	remuxVideo(void *video_frame,unsigned int frame_length,unsigned int frame_ra
 	}
 	else if(NALU_I == nalutype)
 	{
-		DEBUG_LOG("NALU_I\n");
+		//DEBUG_LOG("NALU_I\n");
 		dependsOn = 2;
 		isDependedOn = 1;
 		isNonSync = 0;
 	}
 	else if(NALU_P == nalutype)
 	{
-		DEBUG_LOG("NALU_P\n");
+		//DEBUG_LOG("NALU_P\n");
 		dependsOn = 1;
 		isDependedOn = 0;
 		isNonSync = 1;
@@ -1214,8 +1214,8 @@ int	remuxAudio(void *audio_frame,unsigned int frame_length,unsigned int frame_ra
 		buf_remux_audio.sample_info[buf_remux_audio.write_index].sample_len = frame_length;
 		
 		//保存sample的信息，   用来更新moof 里边 audio traf 下相关 box 的信息(主要是 trun box)
-		buf_remux_audio.sample_info[buf_remux_audio.write_index].trun_sample.sample_duration = ONE_SECOND_DURATION/frame_rate;
-		buf_remux_audio.sample_info[buf_remux_audio.write_index].trun_sample.sample_size = frame_length;
+		buf_remux_audio.sample_info[buf_remux_audio.write_index].trun_sample.sample_duration = t_htonl(ONE_SECOND_DURATION/frame_rate);
+		buf_remux_audio.sample_info[buf_remux_audio.write_index].trun_sample.sample_size = t_htonl(frame_length);
 		buf_remux_audio.sample_info[buf_remux_audio.write_index].trun_sample.sample_flags = 0;
 		//buf_remux_video.sample_info[buf_remux_video.write_index].trun_sample.sample_composition_time_offset = ;
 		buf_remux_audio.write_index ++;
@@ -1417,7 +1417,12 @@ void * remuxVideoAudio(void *args)
 	#if HAVE_AUDIO
 		have_audio = 1;
 	#endif
-	
+
+	unsigned int trun_box_len = 0;
+	unsigned int traf_box_len = 0;
+	unsigned int moof_box_len = 0;
+	unsigned int mdat_box_len = 0;
+	unsigned int data_offset = 0;  //描述 mdat video/audio数据起始位置相较于moof起始位置的数据偏移
 	
 	   
 	do
@@ -1429,16 +1434,25 @@ void * remuxVideoAudio(void *args)
 		if((!remux_run)||remux_v_can_write || remux_A_can_write)
 		{
 
-			unsigned int trun_box_len = 0;
-			unsigned int traf_box_len = 0;
-			unsigned int moof_box_len = 0;
-			unsigned int mdat_box_len = 0;
+			trun_box_len = 0;
+			traf_box_len = 0;
+			moof_box_len = 0;
+			mdat_box_len = 0;
+			buf_offset = 0;
 			
 			//如果缓存中一帧数据都没有，当做没有处理
 			if(0 == buf_remux_video.frame_count)
+			{
+				DEBUG_LOG("have no audio samples !\n");
 				have_video = 0;
+			}
 			if(0 == buf_remux_audio.frame_count)
+			{
+				DEBUG_LOG("have no audio samples !\n");
 				have_audio = 0;
+
+			}
+				
 			//===公共部分长度处理================================
 			//先加上mfhd box的长度
 			moof_box_len = sizeof(moof_box);
@@ -1516,12 +1530,10 @@ void * remuxVideoAudio(void *args)
 			{
 				pthread_mutex_lock(&buf_remux_audio.mut);
 				//DEBUG_LOG("remuxVideoAudio thread writing AUDIO Moof Box...\n");
+				
 				//更新 trun box 的长度,需要加上samples的描述信息长度
-				trun_box_len = t_ntohl(fmp4BOX.traf_audio->trunBox->header.size);
-				for(i = 0 ; i < buf_remux_audio.write_index; i++)
-				{	
-					trun_box_len  += buf_remux_audio.sample_info[i].trun_sample.sample_size;
-				}
+				trun_box_len = t_ntohl(fmp4BOX.traf_audio->trunBox->header.size) + \
+								buf_remux_audio.write_index * sizeof(trun_sample_t);
 				fmp4BOX.traf_audio->trunBox->header.size = t_htonl(trun_box_len);
 				
 				//更新 traf box长度
@@ -1612,10 +1624,9 @@ void * remuxVideoAudio(void *args)
 				fmp4BOX.traf_video->trunBox->sample_count = t_htonl(buf_remux_video.write_index);
 
 				// data_offset
-				DEBUG_LOG("debug 001\n");
-				//moof开始到数（音/视频）数据部分的偏移长度  
+				//moof开始到（音/视频）数据部分的偏移长度  
 				//moof box的总长度 + 8字节的mdat box头，就是 video samples的数据起始位置
-				unsigned int data_offset = t_ntohl(fmp4BOX.moofBox->header.size) + 8;
+				data_offset = t_ntohl(fmp4BOX.moofBox->header.size) + 8;
 				fmp4BOX.traf_video->trunBox->data_offset = t_htonl(data_offset);
 
 				//fmp4BOX.traf_video->trunBox->first_sample_flags = ;//暂时不赋值
@@ -1674,14 +1685,28 @@ void * remuxVideoAudio(void *args)
 				fmp4_file_lable.traf_audio_offset.trunBox_offset = (out_mode == SAVE_IN_FILE)?\
 																	 ftell(file_handle) + buf_offset:\
 																	 out_info.buf_mode.w_offset + buf_offset;
+				//写之前需要更新box中样本点个数等描述信息
+				// sample_count
+				fmp4BOX.traf_audio->trunBox->sample_count = t_htonl(buf_remux_audio.write_index);
+
+				// data_offset
+				//moof开始到（音/视频）数据部分的偏移长度  
+				//moof box的总长度 + 8字节的mdat box头 + video samples的长度，就是 audio samples的数据起始位置
+				data_offset  = t_ntohl(fmp4BOX.moofBox->header.size) + 8 + \
+								buf_remux_video.write_pos - buf_remux_video.remux_video_buf;//video 数据的长度
+				fmp4BOX.traf_video->trunBox->data_offset = t_htonl(data_offset);
+
+				//fmp4BOX.traf_video->trunBox->first_sample_flags = ;//暂时不赋值
+				
+																	 
 				buf_cpy(moof_mdat_buf , fmp4BOX.traf_audio->trunBox ,\
 					sizeof(trun_box), buf_offset,moof_mdat_buf_size);
 				buf_offset += sizeof(trun_box);
 				
 				//trun--->samples info
-				for(i = 0;i < buf_remux_video.write_index;i++)
+				for(i = 0;i < buf_remux_audio.write_index;i++)
 				{
-					buf_cpy(moof_mdat_buf , (unsigned char*)&buf_remux_video.sample_info[i].trun_sample ,\
+					buf_cpy(moof_mdat_buf , (unsigned char*)&buf_remux_audio.sample_info[i].trun_sample ,\
 						sizeof(trun_sample_t), buf_offset,moof_mdat_buf_size);
 					buf_offset += sizeof(trun_sample_t);
 				}
@@ -1728,13 +1753,21 @@ void * remuxVideoAudio(void *args)
 			//音频 samples data  部分
 			if(have_audio)
 			{
-				//DEBUG_LOG("remuxVideoAudio thread writing AUDIO Mdat Box...\n");
 				pthread_mutex_lock(&buf_remux_audio.mut);
 				//mdat--->samples data
-				DEBUG_LOG("debug 001\n");
-				buf_cpy(moof_mdat_buf , buf_remux_audio.remux_audio_buf,\
-					buf_remux_audio.write_pos-buf_remux_audio.remux_audio_buf, buf_offset,moof_mdat_buf_size);
-				buf_offset += buf_remux_audio.write_pos - buf_remux_audio.remux_audio_buf;
+				unsigned int samp_cpy_len = buf_remux_audio.write_pos-buf_remux_audio.remux_audio_buf;
+				if(samp_cpy_len <= 0)
+				{
+					ERROR_LOG("samp_cpy_len <= 0!\n");
+					pthread_mutex_unlock(&buf_remux_audio.mut);
+					pthread_exit(0);
+				}
+				DEBUG_LOG("samp_cpy_len = %d\n",samp_cpy_len);   
+				
+				buf_cpy(moof_mdat_buf , buf_remux_video.remux_video_buf,\
+						samp_cpy_len, buf_offset,moof_mdat_buf_size);
+				buf_offset += samp_cpy_len;
+				
 				
 				pthread_mutex_unlock(&buf_remux_audio.mut);
 			}
@@ -1978,18 +2011,21 @@ int remux_exit(void)
 		usleep(1000*100);
 	}
 	*/
+	DEBUG_LOG("into pthread_cond_wait !\n");
 	pthread_mutex_lock(&remux_write_last_mut);
 		pthread_cond_wait(&remux_write_last_ok, &remux_write_last_mut);
 	pthread_mutex_unlock(&remux_write_last_mut);
 		
 	//===释放=======================================
+	DEBUG_LOG("into free 001!\n");
 	pthread_mutex_destroy(&buf_remux_video.mut);  
    	//pthread_cond_destroy(&buf_remux_audio.mut);
 	free(buf_remux_video.remux_video_buf);
 	free(buf_remux_audio.remux_audio_buf);
 	buf_remux_video.remux_video_buf = NULL;
 	buf_remux_audio.remux_audio_buf = NULL;
-
+	DEBUG_LOG("into free 002!\n");
+	
 	free(fmp4BOX.traf_video->trafBox);
 	fmp4BOX.traf_video->trafBox = NULL;
 	free(fmp4BOX.traf_video->tfhdBox);
@@ -1998,7 +2034,8 @@ int remux_exit(void)
 	fmp4BOX.traf_video->tfdtBox = NULL;
 	free(fmp4BOX.traf_video->trunBox);
 	fmp4BOX.traf_video->trunBox = NULL;
-
+	DEBUG_LOG("into free 002!\n");
+	
 	free(fmp4BOX.traf_audio->trafBox);
 	fmp4BOX.traf_audio->trafBox = NULL;
 	free(fmp4BOX.traf_audio->tfhdBox);
@@ -2007,7 +2044,8 @@ int remux_exit(void)
 	fmp4BOX.traf_audio->tfdtBox = NULL;
 	free(fmp4BOX.traf_audio->trunBox);
 	fmp4BOX.traf_audio->trunBox = NULL;
-
+	DEBUG_LOG("into free 003!\n");
+	
 	//mfhd
 	free(fmp4BOX.mfhdBox);
 	fmp4BOX.mfhdBox = NULL;
@@ -2015,14 +2053,15 @@ int remux_exit(void)
 	//moof的释放呢？？
 	free(fmp4BOX.moofBox);
 	fmp4BOX.moofBox = NULL;
+	DEBUG_LOG("into free 004!\n");
 	
 	//mdat
 	free(fmp4BOX.mdatBox);
 	fmp4BOX.mdatBox = NULL;
 
 	Sequence_number = 0;
-	
-	fclose(file_handle);
+	if(out_mode == SAVE_IN_FILE)
+		fclose(file_handle);
 	DEBUG_LOG("remux_exit success!\n");
 	return 0;
 
