@@ -32,15 +32,17 @@ int switch_small_BigEndian(int num)
 //用来以十六进制字节流打印box
 void print_char_array(unsigned char* box_name,unsigned char*start,unsigned int length)
 {
-	unsigned char*p = start;
-	unsigned int i = 0;
-	printf("\n  %s[]: ",box_name);
-	for(i=0;i<length;i++)
-	{
-		printf("%x ",p[i]);
-	}
-	printf("\n");
-
+	#ifdef HLE_DEBUG
+		unsigned char*p = start;
+		unsigned int i = 0;
+		printf("\n  %s[]: ",box_name);
+		for(i=0;i<length;i++)
+		{
+			printf("%x ",p[i]);
+		}
+		printf("\n");
+	#endif
+	
 }
 
 /*
@@ -460,7 +462,7 @@ tfhd_box*	tfhd_box_init(unsigned int trackId)
 		memcpy(&tfhd_item->header.version,&version_flags,4);
 		tfhd_item->track_ID = t_htonl(trackId);
 		tfhd_item->base_data_offset = 0x0;
-		tfhd_item->default_sample_duration = t_htonl(ONE_SECOND_DURATION/15);//默认15帧，填充前还得修正
+		tfhd_item->default_sample_duration = t_htonl(VIDEO_TIME_SCALE/15);//默认15帧，填充前还得修正
 		tfhd_item->default_sample_size = 0x0;
 	#else
 	
@@ -821,13 +823,14 @@ stsd_box*  AudioSampleEntry(unsigned char channelCount,unsigned short sampleRate
 
 	memcpy((unsigned char*)mp4a_item + 8  ,mp4a,sizeof(mp4a));
 
-	
+	#if 0
 	const unsigned char esds[] = {
 			0x00, 0x00, 0x00, 0x00, // version 0 + flags
 
 			/***Detailed-Information***/
-            0x03, 				// tag1    
-            0x06, 			// tag_size1
+            0x03, 				// tag1  
+            0x80,0x80,0x80,	//可选的扩展描述符类型标记字符串:https://stackoverflow.com/questions/30998150/build-an-esds-box-for-an-mp4-that-firefox-can-play
+            0x06, 		// tag_size1  74 + 2 +6 = 82字节(0x52) 从该字节后边开始到该数组结束的长度        	
             0x00, 0x02, 	// es_id
             0x00, 		// Stream dependence flag
             0x00, 		// URL flag
@@ -843,7 +846,8 @@ stsd_box*  AudioSampleEntry(unsigned char channelCount,unsigned short sampleRate
              
              /*** Decoder Config Descriptor***/
             0x04, // tag1
-            0x0B, // tag1_size  12字节
+            0x80,0x80,0x80,	//可选的扩展描述符类型标记字符串
+            0x0E, // tag1_size  58字节+2字节（tag和size）+ 14字节 = 74字节
             0x40, // Object type indication
             0x05, // Stream type
             0x00, 	// Up stream
@@ -853,7 +857,8 @@ stsd_box*  AudioSampleEntry(unsigned char channelCount,unsigned short sampleRate
 
 			/***Audio Decoder Specific Info***/
 			0x05,	//tag
-			0x33,	//tag_size  后边51(0x33)个字节
+			0x80,0x80,0x80,	//可选的扩展描述符类型标记字符串
+			0x3A,//58字节（0x3A） 0x33,	//tag_size  后边51(0x33)个字节
 			0x00,0x00,   //reserved
 			0x00,0x00,0x00,0x02, //Audio object type ; 02 - AAC LC or backwards compatible HE-AAC (Most realworld AAC falls in one of these cases) 
 			0x00,0x00,0x00,0x04, //Sampling freq index
@@ -877,7 +882,45 @@ stsd_box*  AudioSampleEntry(unsigned char channelCount,unsigned short sampleRate
 			0x00, //Extension flag3
 			
 		};  
+	#else
+		const unsigned char esds[] = {
+		0x00, 0x00, 0x00, 0x00, // version 0 + flags
+		
+		/***Detailed-Information***/
+        0x03, 				// tag1 
+        0x80,0x80,0x80,		//可选的扩展描述符类型标记字符串
+		0x25,				//Tag1 size
+		0x00, 0x02,			//ES_ID
+		0x00,				//Stream dependence flag
+		/**
+		*当 objectTypeIndication 为0x40时，为MPEG-4 Audio（MPEG-4 Audio generally is thought of as AAC
+		* but there is a whole framework of audio codecs that can Go in MPEG-4 Audio including AAC, BSAC, ALS, CELP,
+		* and something called MP3On4），如果想更细分format为aac还是mp3，
+		* 可以读取 MP4DecSpecificDescr 层 data[0] 的前五位
+		*/
+             
+        /*** Decoder Config Descriptor***/
+		0x04,				//Tag2
+		0x80,0x80,0x80,		//可选的扩展描述符类型标记字符串
+		0x17,				//Tag size2
+		0x40,				//Object type indication
+		0x15,0x00,0x00,0x00,
+		0x00,0x01,0xF4,0x00,//Max bitrate 128000
+		0x00,0x00,0x00,0x00,//Avg bitrate
 
+		/***Audio Decoder Specific Info***/
+		0x05,				//Tag3
+		0x80,0x80,0x80,		//可选的扩展描述符类型标记字符串
+		0x05, 				//Tag size3
+		0x12,				//Audio object type
+		0x10,0x56,0xE5,0x00,		//?????????
+		/***新版本新加的部分***/
+		0x06,
+		0x80,0x80,0x80,
+		0x01,
+		0x02 
+		};
+	#endif
 	unsigned int esds_length = sizeof(esds_box);
 	DEBUG_LOG("esds_item malloc size(%d) sizeof(esds[]) = %d\n",esds_length,sizeof(esds));
 	esds_box*esds_item = (esds_box*)malloc(esds_length);

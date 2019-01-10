@@ -60,17 +60,18 @@ int Fmp4_encode_init(fmp4_out_info_t * out_info,unsigned int Vframe_rate,unsigne
 返回值：成功:0
 		失败：-1
 *******************************************************************************************/
-int Fmp4VEncode(void *video_frame,unsigned int frame_length,unsigned int frame_rate);
+int Fmp4VEncode(void *video_frame,unsigned int frame_length,unsigned int frame_rate,unsigned long long time_scale);
 
 /***n*(STEP3-2)*****************************************************************************
 功能：放入一帧	audio        frame 进行fmp4编码
 参数：<audio_frame> ：audio frame 的首地址
 	  <audio_length>：audio frame 帧长
 	  <frame_rate>  : audio frame 的帧率
+	  <time_scale>  : audio frame 的时间戳
 返回值：成功:0
 		失败：-1
 *******************************************************************************************/
-int Fmp4AEncode(void * audio_frame, unsigned int frame_length, unsigned int frame_rate);
+int Fmp4AEncode(void * audio_frame, unsigned int frame_length, unsigned int frame_rate,unsigned long long time_scale);
 
 /***STEP5**********************************************************************************
 功能：fmp4编码退出

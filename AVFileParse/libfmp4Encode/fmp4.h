@@ -273,6 +273,7 @@ typedef struct _buf_remux_video_t
 	unsigned char read_index;	//sample_info数组的即将要读的下标
 	unsigned char need_remux;	//buf已经缓冲好1S的samples,需要将完整的 moof+mdat box 写入到文件
 	unsigned char reserved[2];
+	//以下参数直到释放前不需要复位
 	tfra_entry_info_t entry_info[MAX_MOOF_MDAT_NUM];
 	unsigned int entry_info_num;
 
@@ -296,6 +297,7 @@ typedef struct _buf_remux_audio_t
 	unsigned char read_index;	//sample_info数组的即将要读的下标
 	unsigned char need_remux;	//buf已经缓冲好1S的samples,需要将完整的 moof+mdat box 写入到文件
 	unsigned char reserved;
+	//以下参数直到释放前不需要复位
 	tfra_entry_info_t entry_info[MAX_MOOF_MDAT_NUM];
 	unsigned int entry_info_num;
 	pthread_mutex_t mut;		//读写锁

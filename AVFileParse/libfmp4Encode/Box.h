@@ -14,7 +14,15 @@ extern "C"
 #define		NALU_P    3
 #define		NALU_SET  4
 
-#define ONE_SECOND_DURATION (12800)  //1秒时间分割数
+//#define ONE_SECOND_DURATION (12800)  //1秒时间分割数
+#define VIDEO_TIME_SCALE (90000)   //视频的内部时间戳（1s的分割数）
+#define AUDIO_TIME_SCALE (8000)   //音频的内部时间戳（1s的分割数）
+
+#define VIDEO_ONE_MSC_LEN (VIDEO_TIME_SCALE/1000)    //视频实际每毫秒对应内部时间长度 
+#define AUDIO_ONE_MSC_LEN (AUDIO_TIME_SCALE/1000)	//音频实际每毫秒对应内部时间长度
+
+#define AUDIO_FREAME_SAMPLES (1024) //一帧 audio 帧的采样点数
+
 
 typedef unsigned int Fmp4TrackId; //轨道ID
 
@@ -603,39 +611,42 @@ typedef struct  ESDescriptorBox_t
 	FullBoxHeader_t header;
 //12 bytes
 
-	//Detailed-Information
+	//---Detailed-Information--------------------------------------
 	unsigned char 	tag1;		// descriptor_type    MP4ESDescrTag
-	unsigned char 	tag_size1;	
+	unsigned char   ex_string1[3];
 	
+	unsigned char 	tag_size1;	
 	unsigned short 	es_id;
-//16 bytes
-
 	unsigned char 	Stream_dependence_flag;
+//20 bytes
 	unsigned char 	URL_flag; 
 	unsigned char 	OCR_stream_flag;
 	unsigned char	Stream_priority;
-//20 bytes	
+
 	
-	//Decoder Config Descriptor
+	//---Decoder Config Descriptor----------------------------------
 	unsigned char 	tag2;
+//24 bytes	
+
+	unsigned char   ex_string2[3];
 	unsigned char 	tag_size2;
+//28
 	unsigned char 	Object_type_indication;	//MPEG-4 audio (0X40)
 	unsigned char 	Stream_type;
-//24 bytes
-
 	unsigned char 	Up_stream;
-	unsigned char	Reserved[3];
-//28 bytes
+	unsigned char	Reserved[1];
+//32 bytes
 
 	unsigned int	Max_bitrate;
 	unsigned int 	Avg_bitrate;
-//36 bytes
-
-	//Audio Decoder Specific Info
-	unsigned char	Tag3;		//5 (0X05)
-	unsigned char	Tag_size3;	//5 (0X05)
-	unsigned char	reserved02[2];
 //40 bytes
+
+	//---Audio Decoder Specific Info--------------------------------
+	unsigned char	Tag3;		//5 (0X05)
+	unsigned char   ex_string3[3];
+	unsigned char	Tag_size3;	//5 (0X05)
+	unsigned char	reserved02[3];
+//48 bytes
 
 	unsigned int	Audio_object_type;		//2 (0X00000002)
 	unsigned int	Sampling_freq_index;	//4 (0X00000004)
@@ -644,30 +655,30 @@ typedef struct  ESDescriptorBox_t
 	unsigned int	Ext_audio_object_type;
 	unsigned int	Ext_sampling_freq_index;
 	unsigned int	Ext_sampling_freq;
-//68 bytes
+//76 bytes
 
 	unsigned char	Frame_length_flag;
 	unsigned char	Depends_on_core_coder;
 	unsigned char	reserved03_1[2];
-//72 bytes
+//80 bytes
 
 	unsigned int 	Core_coder_delay; 
-//76 bytes
+//84 bytes
 
 	unsigned char 	Extension_flag; 
 	unsigned char	reserved03_2[3];
-//80 bytes
+//88 bytes
 
 	unsigned int 	Layer_nr; 			//(0X00000000) 
 	unsigned int 	Num_of_subframe;	//(0X00000000) 
 	unsigned int 	Layer_length;		//(0X00000000) 
-//92 bytes
+//100 bytes
 
 	unsigned char	aac_section_data_resilience_flag;	//(0X00) 
 	unsigned char	aac_scale_factor_data_resilience_flag; //(0X00)
 	unsigned char	aac_spectral_data_resilience_flag;
 	unsigned char	Extension_flag3;
-//96 bytes
+//104 bytes
 
 }esds_box;
 
