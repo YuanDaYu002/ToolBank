@@ -375,10 +375,10 @@ fmp4_file_box_t* fmp4_box_init()
 	#if HAVE_AUDIO
 		//初始化 audio trak box
 		trak_audio_init_t args_audio = {0};
-		args_audio.timescale = 8000;
+		args_audio.timescale = AUDIO_TIME_SCALE;
 		args_audio.duration = 0;
 		args_audio.channelCount = 1;
-		args_audio.sampleRate = 8000;
+		args_audio.sampleRate = AUDIO_SOURCE_SAMPLE_RATE; //音频源数据样本率
 		fmp4BOX.trak_audio = trak_audio_init(&args_audio);
 		if(NULL == fmp4BOX.trak_audio)
 		{
@@ -1181,7 +1181,8 @@ int	remuxVideo(void *video_frame,unsigned int frame_length,unsigned int frame_ra
 			usleep(20);  
 		}
 
-		//指针归位，buf又循环重写 
+		//指针归位，buf又循环重写 放到 remuxVideoAudio（）函数做了
+		/*
 		pthread_mutex_lock(&buf_remux_video.mut);		
 		//pthread_cond_wait(&buf_remux_video.remux_ready, &buf_remux_video.mut);
 		buf_remux_video.write_pos = buf_remux_video.remux_video_buf;
@@ -1190,6 +1191,7 @@ int	remuxVideo(void *video_frame,unsigned int frame_length,unsigned int frame_ra
 		buf_remux_video.write_index = 0;
 		buf_remux_video.need_remux = 0;
 		pthread_mutex_unlock(&buf_remux_video.mut); 
+		*/
 	}
 
 	return 0;
@@ -1215,7 +1217,7 @@ int	remuxAudio(void *audio_frame,unsigned int frame_length,unsigned int frame_ra
 	}
 
 	 //将该帧放到暂存区
-	if(buf_remux_audio.frame_count < buf_remux_audio.frame_rate)//缓存区的帧数不够1S，继续将帧数据放入缓存区
+	if(buf_remux_audio.frame_count < 2* buf_remux_audio.frame_rate)//缓存区的帧数不够2S，继续将帧数据放入缓存区（防止干扰视频）
 	{
 		if(buf_remux_audio.write_pos + frame_length > buf_remux_audio.remux_audio_buf + REMUX_VIDEO_BUF_SIZE)
 		{
@@ -1247,7 +1249,7 @@ int	remuxAudio(void *audio_frame,unsigned int frame_length,unsigned int frame_ra
 		}
 		DEBUG_LOG("A_tmp_sample_duration (%d)\n",tmp_sample_duration);
 		A_pre_time_scale_ms = time_scale;//记录当前帧时间戳，下一帧来时使用。
-		buf_remux_audio.sample_info[buf_remux_audio.write_index].trun_sample.sample_duration = t_htonl(tmp_sample_duration);//t_htonl(AUDIO_FREAME_SAMPLES)
+		buf_remux_audio.sample_info[buf_remux_audio.write_index].trun_sample.sample_duration = t_htonl(1024);//t_htonl(tmp_sample_duration);
 		buf_remux_audio.sample_info[buf_remux_audio.write_index].trun_sample.sample_size = t_htonl(frame_length);
 		buf_remux_audio.sample_info[buf_remux_audio.write_index].trun_sample.sample_flags = 0;
 		//buf_remux_video.sample_info[buf_remux_video.write_index].trun_sample.sample_composition_time_offset = ; //不使用该参数
@@ -1271,7 +1273,8 @@ int	remuxAudio(void *audio_frame,unsigned int frame_length,unsigned int frame_ra
 			usleep(20);
 		}
 
-		//指针归位，buf又循环重写 
+		//指针归位，buf又循环重写 ，放到 remuxVideoAudio（）函数做了
+		/*
 		pthread_mutex_lock(&buf_remux_audio.mut);
 		//pthread_cond_wait(&buf_remux_audio.remux_ready, &buf_remux_audio.mut);
 		buf_remux_audio.write_pos = buf_remux_audio.remux_audio_buf;
@@ -1280,6 +1283,7 @@ int	remuxAudio(void *audio_frame,unsigned int frame_length,unsigned int frame_ra
 		buf_remux_audio.write_index = 0;
 		buf_remux_audio.need_remux = 0;
 		pthread_mutex_unlock(&buf_remux_audio.mut);
+		*/
 	}
 
 	return 0;
@@ -1477,7 +1481,7 @@ void * remuxVideoAudio(void *args)
 			mdat_box_len = 0;
 			buf_offset = 0;
 			
-			//如果缓存中一帧数据都没有，当做没有处理
+			//如果缓存中一帧数据都没有，当做没有处理,有BUG，音视频一个有数据一个没数据时会造成卡顿
 			if(0 == buf_remux_video.frame_count)
 			{
 				DEBUG_LOG("have no video samples !\n");
@@ -1820,6 +1824,36 @@ void * remuxVideoAudio(void *args)
 			fmp4BOX.traf_audio->trafBox->header.size = t_htonl(sizeof(traf_box));
 			fmp4BOX.traf_audio->trunBox->header.size = t_htonl(sizeof(trun_box));
 			fmp4BOX.mdatBox->header.size = t_htonl(sizeof(mdat_box));  //BUG 解决
+
+			/*======音视频缓存buf指针归位，buf需要循环重写。=======================================
+			该归位如果单独放在 remuxAudio/remuxVideo函数里边做会存在BUG,
+			假设，AUDIO满足写的帧数，写入了新的moof+mdat box，但此时 video 帧并没有满一个 framerate数，
+			但audio复位了，video缓存区并没有复位。还是放在一起做复位的好。
+			还有下一次写时第一帧不会是I帧，打破了mdat box 第一帧视频帧是I（IDR）帧的规则。
+			所以，原则上保持mdat box 第一个video帧是 I（IDR）帧为主，而音频帧相对来说比较随意。
+			*/ 
+			#if HAVE_AUDIO
+				pthread_mutex_lock(&buf_remux_audio.mut);
+				//pthread_cond_wait(&buf_remux_audio.remux_ready, &buf_remux_audio.mut);
+				buf_remux_audio.write_pos = buf_remux_audio.remux_audio_buf;
+				buf_remux_audio.read_pos = buf_remux_audio.remux_audio_buf;
+				buf_remux_audio.frame_count = 0;
+				buf_remux_audio.write_index = 0;
+				buf_remux_audio.need_remux = 0;
+				pthread_mutex_unlock(&buf_remux_audio.mut);
+			#endif
+
+			#if HAVE_VIDEO
+				pthread_mutex_lock(&buf_remux_video.mut);		
+				//pthread_cond_wait(&buf_remux_video.remux_ready, &buf_remux_video.mut);
+				buf_remux_video.write_pos = buf_remux_video.remux_video_buf;
+				buf_remux_video.read_pos = buf_remux_video.remux_video_buf;
+				buf_remux_video.frame_count = 0;
+				buf_remux_video.write_index = 0;
+				buf_remux_video.need_remux = 0;
+				pthread_mutex_unlock(&buf_remux_video.mut); 
+			#endif
+			///*======end====================================================================
 			
 			//通知主线程，缓冲区复位，缓冲新数据,主线程循环下一轮工作
 			remux_v_can_write = 0;
