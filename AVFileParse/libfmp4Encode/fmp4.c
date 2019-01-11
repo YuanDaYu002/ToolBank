@@ -1064,7 +1064,7 @@ int	remuxVideo(void *video_frame,unsigned int frame_length,unsigned int frame_ra
 		isDependedOn = 1;
 		isNonSync = 0;
 
-		#define ENABLE_CUT_SPS_PPS 0  //使能：裁剪掉sps pps， 并用4字节大小填充帧头
+		#define ENABLE_CUT_SPS_PPS 1  //使能：裁剪掉SPS   	PPS SEI， 并用4字节大小填充帧头
 		#if ENABLE_CUT_SPS_PPS
 		//只接受 I/P帧，对IDR帧之前的PPS SPS SEI做剔除
 		video_frame = video_frame + 37;//37字节为海思编码IDR帧的SPS + PPS + SEI总长度
