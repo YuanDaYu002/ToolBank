@@ -7,6 +7,11 @@ extern "C"
 {
 #endif
 
+#define VIDEO_TRACK 1   //视频轨道
+#define AUDIO_TRACK 2   //音频轨道
+#define HAVE_VIDEO 1
+#define HAVE_AUDIO 1
+
 
 #define 	NALU_SPS  0
 #define		NALU_PPS  1
@@ -15,8 +20,8 @@ extern "C"
 #define		NALU_SET  4
 
 //#define ONE_SECOND_DURATION (12800)  //1秒时间分割数
-#define VIDEO_TIME_SCALE (12288)   //视频的内部时间戳（1s的分割数）
-#define AUDIO_TIME_SCALE (44100)   //音频的内部时间戳（1s的分割数）
+#define VIDEO_TIME_SCALE (90000)   //视频的内部时间戳（1s的分割数）
+#define AUDIO_TIME_SCALE (8000)   //音频的内部时间戳（1s的分割数）
 
 
 #define VIDEO_ONE_MSC_LEN (VIDEO_TIME_SCALE/1000)    //视频实际每毫秒对应内部时间长度 
@@ -290,13 +295,21 @@ typedef struct TrackFragmentRunBox_t
 
 //将上方的 trun box里边的samples部分提取出来专门处理
 //trun box 的sample数组元素结构
-typedef struct _trun_sample_t
+typedef struct _trun_V_sample_t// video
 {
     unsigned int sample_duration; //样本（可理解为1帧）的持续时间
     unsigned int sample_size;
     unsigned int sample_flags;
    // unsigned int sample_composition_time_offset; 
-}trun_sample_t;
+}trun_V_sample_t;
+typedef struct _trun_A_sample_t //audio
+{
+   unsigned int sample_duration; //样本（可理解为1帧）的持续时间
+   unsigned int sample_size;
+   //unsigned int sample_flags;
+  // unsigned int sample_composition_time_offset; 
+}trun_A_sample_t;
+
 
 /****四级BOX*********************************************************/
 typedef struct  MediaHeaderBox_t
@@ -856,7 +869,7 @@ trex_box*	trex_box_init(unsigned int trackId);
 tfhd_box*	tfhd_box_init(unsigned int trackId);
 tfdt_box*	tfdt_box_init(int baseMediaDecodeTime);
 sdtp_box*	sdtp_box_init();
-trun_box*	trun_box_init();
+trun_box*	trun_box_init(unsigned int trackId);
 mdhd_box* mdhd_box_init(unsigned int timescale,unsigned int duration);
 
 #define VIDEO_HANDLER 1

@@ -29,7 +29,7 @@ int switch_small_BigEndian(int num)
 
 }
 
-//用来以十六进制字节流打印box
+//用来以十六进制字节流打印box,用于调试
 void print_char_array(unsigned char* box_name,unsigned char*start,unsigned int length)
 {
 	#ifdef HLE_DEBUG
@@ -464,6 +464,12 @@ tfhd_box*	tfhd_box_init(unsigned int trackId)
 		tfhd_item->base_data_offset = 0x0;
 		tfhd_item->default_sample_duration = t_htonl(VIDEO_TIME_SCALE/15);//默认15帧，填充前还得修正
 		tfhd_item->default_sample_size = 0x0;
+		/*  不使用 default_sample_flags
+		if(trackId == VIDEO_TRACK) //video
+			tfhd_item->default_sample_flags = t_htonl(16842752); // video samples 的标志 
+		else		//audio
+			tfhd_item->default_sample_flags = t_htonl(33554432);
+		*/
 	#else
 	
     const unsigned char TFHD[] = {
@@ -509,7 +515,7 @@ tfdt_box*	tfdt_box_init(int baseMediaDecodeTime)
 	
     const unsigned char TFDT[] = {
 		    0x00, 0x00, 0x00, 0x00, // version(0) & flags
-		    (baseMediaDecodeTime >> 24) & 0xFF, // baseMediaDecodeTime: int32
+		    (baseMediaDecodeTime >> 24) & 0xFF, // baseMediaDecodeTime: int32  该moof + mdat box 开始解码的时间（video/audio各自独立）
 		    (baseMediaDecodeTime >> 16) & 0xFF,
 		    (baseMediaDecodeTime >> 8 ) & 0xFF,
 		    (baseMediaDecodeTime) & 0xFF
@@ -537,7 +543,7 @@ sdtp_box*	sdtp_box_init()
 	
 }
 
-trun_box*	trun_box_init()
+trun_box*	trun_box_init(unsigned int trackId)
 {
 	DEBUG_LOG("trun_item malloc size(%d)\n",sizeof(trun_box));
 	trun_box* trun_item = (trun_box*)malloc(sizeof(trun_box));
@@ -547,12 +553,32 @@ trun_box*	trun_box_init()
 	memset(trun_item,0,sizeof(trun_box));
 	trun_item->header.size = t_htonl(sizeof(trun_box)); 
 	strncpy(trun_item->header.type,"trun",4);
-	unsigned char version_flags[] = {0x00, 0x00, 0x07, 0x01};//注意flag会决定下边可选的项目哪些有哪些没有
+	unsigned char flag_01 = 0x00;
+	if(trackId == VIDEO_TRACK)//video
+	{
+		flag_01 = 0x07; //使用 sample_flags 参数
+	}
+	else 		//audio
+	{
+		flag_01 = 0x03;//03不使用 sample_flags 参数。
+	}
+		
+	
+	unsigned char version_flags[] = {0x00, 0x00, flag_01, 0x01};//注意flag会决定下边可选的项目哪些有哪些没有
 	memcpy((unsigned char*)trun_item + 8,version_flags,4);//初始化version & flags
 	
 
 	trun_item->sample_count = 0; //样本的个数，后续依据样本再动态修改
-	//trun_item->first_sample_flags = 0;
+	/* 不使用 参数 first_sample_flags  ，启用该代码需要修改上边的 version_flags：{0x00, 0x00, flag_01, 0x05}，并打开结构体中的参数。
+	if(trackId == VIDEO_TRACK)
+	{
+		trun_item->first_sample_flags = t_htonl(33554432); //在video traf--> trun box 里，记录下 audio samples的标记。
+	}
+	else //audio 不用记录      33554432 是audio samples 的标记。
+	{
+		trun_item->first_sample_flags = t_htonl(0); 
+	}
+	*/
 	
 	//后边的samples相关数据需要   音视频混合程序来实时填充，初始化不做处理
 

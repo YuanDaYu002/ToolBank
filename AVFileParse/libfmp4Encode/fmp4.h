@@ -6,11 +6,6 @@
 #include "Box.h"
 
 
-#define VIDEO_TRACK 1   //视频轨道
-#define AUDIO_TRACK 2   //音频轨道
-#define HAVE_VIDEO 1
-#define HAVE_AUDIO 1
-
 #define OUT  //标记为输出参数
 #define IN	 //标记为输入参数
 
@@ -251,12 +246,20 @@ H264: MAX ： 30帧/s
 
 
 //写入mdat box中的每个sample的描述信息（放在trun box中）
-typedef struct _sample_info_t
+typedef struct _sample_V_info_t  //video
 {
 	char* 				sample_pos;		//该sample在buf中的位置
 	unsigned int		sample_len;		//该sample的长度
-	trun_sample_t   	trun_sample; 	//trun box 的sample数组元素信息
-}sample_info_t;
+	trun_V_sample_t   	trun_sample; 	//trun box 的sample数组元素信息
+}sample_V_info_t;
+
+typedef struct _sample_A_info_t  //audio
+{
+	char* 				sample_pos;		//该sample在buf中的位置
+	unsigned int		sample_len;		//该sample的长度
+	trun_A_sample_t   	trun_sample; 	//trun box 的sample数组元素信息
+}sample_A_info_t;
+
 
 /*
 混合器，video 缓冲结构
@@ -268,7 +271,7 @@ typedef struct _buf_remux_video_t
 	unsigned char*	read_pos;			//读指针位置
 	unsigned int 	frame_count;		//buf 中已经存储的帧数量
 	unsigned int 	frame_rate; 		//外部传入视频数据的原本帧率
-	sample_info_t sample_info[TRUN_VIDEO_MAX_SAMPLES]; //buffer 中 video sample（帧）的信息数组指针
+	sample_V_info_t sample_info[TRUN_VIDEO_MAX_SAMPLES]; //buffer 中 video sample（帧）的信息数组指针
 	unsigned int write_index;	//sample_info数组的即将要写的下标
 	unsigned char read_index;	//sample_info数组的即将要读的下标
 	unsigned char need_remux;	//buf已经缓冲好1S的samples,需要将完整的 moof+mdat box 写入到文件
@@ -292,7 +295,7 @@ typedef struct _buf_remux_audio_t
 	char*	read_pos;			//读指针位置
 	int 	frame_count;		//buf 中已经存储的帧数量
 	int 	frame_rate; 		//外部传入视频数据的原本帧率
-	sample_info_t sample_info[TRUN_AUDIO_MAX_SAMPLES]; //buffer 中 audio sample（帧）的信息数组
+	sample_A_info_t sample_info[TRUN_AUDIO_MAX_SAMPLES]; //buffer 中 audio sample（帧）的信息数组
 	unsigned char write_index;	//sample_info数组的即将要写的下标
 	unsigned char read_index;	//sample_info数组的即将要读的下标
 	unsigned char need_remux;	//buf已经缓冲好1S的samples,需要将完整的 moof+mdat box 写入到文件
