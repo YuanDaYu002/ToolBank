@@ -229,18 +229,40 @@ typedef struct TrackExtendsBox_t
     unsigned int default_sample_flags;
 }trex_box;
 
+
+#define  E_base_data_offset  			0x000001   //使能 base_data_offset 参数
+#define  E_sample_description_index  	0x000002    //使能 sample_description_index 参数
+#define  E_default_sample_duration  	0x000008    //使能 default_sample_duration 参数
+#define  E_default_sample_size 			0x000010    //使能 default_sample_size 参数
+#define  E_default_sample_flags			0x000020    //使能 default_sample_flags 参数
+
+#define  DURATION_IS_EMPTY 				0x010000    
+/*0x010000 duration-is-empty: this indicates that the duration provided in either default-sample-duration,
+or by the default-duration in the Track Extends Box, is empty, i.e. that there are no samples for this
+time interval. It is an error to make a presentation that has both edit lists in the Movie Box, and emptyduration fragments*/
+
+#define  DEFAULT_BASE_IS_MOOF 			0x020000    //从每个视频的偏移位置从moof算起。
+/*0x020000 default-base-is-moof: if base-data-offset-present is zero, 
+this indicates that the base-dataoffset for this track fragment is the position of the first byte of the enclosing Movie Fragment Box.
+Support for the default-base-is-moof flag is required under the ‘iso5’ brand, and it shall not be used in
+brands or compatible brands earlier than iso5
+
+NOTE The use of the default-base-is-moof flag breaks the compatibility to earlier brands of the file format, because it
+sets the anchor point for offset calculation differently than earlier. Therefore, the default-base-is-moof flag cannot be set
+when earlier brands are included in the File Type box.*/
+
 typedef struct TrackFragmentHeaderBox_t
 {
 	FullBoxHeader_t 		header;
 //12
 	unsigned int 			track_ID;
 //16
-	// all the following are optional fields 
+	/* all the following are optional fields */ 
 	unsigned long long 		base_data_offset; 
 //24 
-	//unsigned int 			sample_description_index; //多余了四个字节，与解析器对不上
+	//unsigned int 			sample_description_index; //多余了四个字节，与解析器对不上,如有问题请删除
 	unsigned int 			default_sample_duration; 
-	unsigned int 			default_sample_size; 
+	//unsigned int 			default_sample_size; 
 	//unsigned int 			default_sample_flags;
 //40字节	
 }tfhd_box;
@@ -248,7 +270,7 @@ typedef struct TrackFragmentHeaderBox_t
 typedef struct TrackFragmentBaseMediaDecodeTimeBox_t
 {
 	FullBoxHeader_t 	header;
-	unsigned int  				baseMediaDecodeTime;//version = 1 时将为8字节，但本代码只支持 version = 0模式
+	unsigned int  		baseMediaDecodeTime;//version = 1 时将为8字节，但本代码只支持 version = 0模式
 	
 	
 }tfdt_box;
@@ -268,6 +290,14 @@ typedef struct SampleDependencyTypeBox_t
 
 }sdtp_box;
 
+
+#define  E_data_offset  					0x000001  //使能 data_offset 参数 
+#define  E_first_sample_flags  				0x000004  //使能 first_sample_flags 参数 
+//sample 部分
+#define  E_sample_duration  				0x000100  //使能 sample_duration 参数
+#define  E_sample_size  					0x000200  //使能 sample_size 参数 
+#define  E_sample_flags  					0x000400  //使能 sample_flags 参数
+#define  E_sample_composition_time_offset  	0x000800  //使能 sample_composition_time_offset 参数
 
 typedef struct TrackFragmentRunBox_t
 {
@@ -299,15 +329,15 @@ typedef struct _trun_V_sample_t// video
 {
     unsigned int sample_duration; //样本（可理解为1帧）的持续时间
     unsigned int sample_size;
-    unsigned int sample_flags;
+   //unsigned int sample_flags;
    // unsigned int sample_composition_time_offset; 
 }trun_V_sample_t;
 typedef struct _trun_A_sample_t //audio
 {
    unsigned int sample_duration; //样本（可理解为1帧）的持续时间
    unsigned int sample_size;
-   //unsigned int sample_flags;
-  // unsigned int sample_composition_time_offset; 
+  // unsigned int sample_flags;
+  //unsigned int sample_composition_time_offset; 
 }trun_A_sample_t;
 
 

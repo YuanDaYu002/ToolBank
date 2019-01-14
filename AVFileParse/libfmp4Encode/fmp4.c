@@ -1146,12 +1146,17 @@ int	remuxVideo(void *video_frame,unsigned int frame_length,unsigned int frame_ra
 			
 
 
-	
+			#if 0 //sample_flags 部分
 			unsigned char sample_flags[4] = {(isLeading << 2)|(dependsOn),
 											 (isDependedOn << 6) | (hasRedundancy << 4) | isNonSync,
 											 0x00,0x00
 											};
 			memcpy((unsigned char*)&buf_remux_video.sample_info[buf_remux_video.write_index].trun_sample.sample_flags,sample_flags,sizeof(sample_flags));
+			DEBUG_LOG("buf_remux_video.sample_info[buf_remux_video.write_index].trun_sample.sample_flags(%d)\n",\
+					   buf_remux_video.sample_info[buf_remux_video.write_index].trun_sample.sample_flags);
+			buf_remux_video.sample_info[buf_remux_video.write_index].trun_sample.sample_flags = t_htonl(16842752);
+			#endif
+			
 			// t_htonl(cts)  需要获取帧的cts,暂时不填
 			//buf_remux_video.sample_info[buf_remux_video.write_index].trun_sample.sample_composition_time_offset = 0;
 			buf_remux_video.write_index ++;
@@ -1254,8 +1259,11 @@ int	remuxAudio(void *audio_frame,unsigned int frame_length,unsigned int frame_ra
 		A_pre_time_scale_ms = time_scale;//记录当前帧时间戳，下一帧来时使用。
 		buf_remux_audio.sample_info[buf_remux_audio.write_index].trun_sample.sample_duration = t_htonl(tmp_sample_duration);//t_htonl(1024)
 		buf_remux_audio.sample_info[buf_remux_audio.write_index].trun_sample.sample_size = t_htonl(frame_length);
-		//buf_remux_audio.sample_info[buf_remux_audio.write_index].trun_sample.sample_flags = 0;
-		//buf_remux_audio.sample_info[buf_remux_audio.write_index].trun_sample.sample_composition_time_offset = ; //不使用该参数
+		#if 0  // sample_flags 部分
+		buf_remux_audio.sample_info[buf_remux_audio.write_index].trun_sample.sample_flags = t_htonl(33554432 ); //audio 不使用该参数
+		#endif
+		//buf_remux_audio.sample_info[buf_remux_audio.write_index].trun_sample.sample_composition_time_offset = ; //audio 不使用该参数
+
 		buf_remux_audio.write_index ++;
 		if(buf_remux_audio.write_index > TRUN_VIDEO_MAX_SAMPLES)
 		{
@@ -1647,7 +1655,7 @@ void * remuxVideoAudio(void *args)
 				DEBUG_LOG("fmp4_file_lable.moofBox_offset = %d\n",fmp4_file_lable.moofBox_offset);
 				fmp4BOX.traf_video->tfhdBox->base_data_offset = t_htonll((unsigned long long)fmp4_file_lable.moofBox_offset);
 				fmp4BOX.traf_video->tfhdBox->default_sample_duration = t_htonl(VIDEO_TIME_SCALE/buf_remux_video.frame_rate);
-				fmp4BOX.traf_video->tfhdBox->default_sample_size = 0;
+			//	fmp4BOX.traf_video->tfhdBox->default_sample_size = 0;
 				fmp4_file_lable.traf_video_offset.tfhdBox_offset = (out_mode == SAVE_IN_FILE)?\
 																	 ftell(file_handle) + buf_offset:\
 																	 out_info.buf_mode.w_offset + buf_offset;	
