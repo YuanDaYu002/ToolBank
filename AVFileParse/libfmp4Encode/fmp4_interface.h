@@ -36,9 +36,10 @@ typedef struct _fmp4_out_info_t
 					
 	  Vframe_rate: 转入视频的原始帧率
 	  Aframe_rate：传入音频的原始帧率
+	  audio_sampling_rate: 传入音频数据的原始采样率
 返回值：成功 ： 0  失败：-1
 *******************************************************************************************/
-int Fmp4_encode_init(fmp4_out_info_t * out_info,unsigned int Vframe_rate,unsigned int Aframe_rate);
+int Fmp4_encode_init(fmp4_out_info_t * out_info,unsigned int Vframe_rate,unsigned int Aframe_rate,unsigned short audio_sampling_rate);
 
 
 /***STEP 2********************************************************************************
@@ -57,6 +58,7 @@ int Fmp4_encode_init(fmp4_out_info_t * out_info,unsigned int Vframe_rate,unsigne
 参数：<video_frame> ：video frame 的首地址
 	  <frame_length>：video frame 帧长
 	  <frame_rate>  : video frame 的帧率
+	  <time_scale>  : video frame 的时间戳(ms)
 返回值：成功:0
 		失败：-1
 *******************************************************************************************/
@@ -67,7 +69,7 @@ int Fmp4VEncode(void *video_frame,unsigned int frame_length,unsigned int frame_r
 参数：<audio_frame> ：audio frame 的首地址
 	  <audio_length>：audio frame 帧长
 	  <frame_rate>  : audio frame 的帧率
-	  <time_scale>  : audio frame 的时间戳
+	  <time_scale>  : audio frame 的时间戳(ms)
 返回值：成功:0
 		失败：-1
 *******************************************************************************************/

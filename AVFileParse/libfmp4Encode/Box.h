@@ -9,8 +9,8 @@ extern "C"
 
 #define VIDEO_TRACK 1   //视频轨道
 #define AUDIO_TRACK 2   //音频轨道
-#define HAVE_VIDEO 1
-#define HAVE_AUDIO 1
+#define HAVE_VIDEO 1    //视频轨道总控开关
+#define HAVE_AUDIO 1	//音频轨道总控开关
 
 
 #define 	NALU_SPS  0
@@ -21,14 +21,16 @@ extern "C"
 
 //#define ONE_SECOND_DURATION (12800)  //1秒时间分割数
 #define VIDEO_TIME_SCALE (90000)   //视频的内部时间戳（1s的分割数）
-#define AUDIO_TIME_SCALE (8000)   //音频的内部时间戳（1s的分割数）
+#define AUDIO_TIME_SCALE (90000)   //音频的内部时间戳（1s的分割数）
 
 
 #define VIDEO_ONE_MSC_LEN (VIDEO_TIME_SCALE/1000)    //视频实际每毫秒对应内部时间长度 
 #define AUDIO_ONE_MSC_LEN (AUDIO_TIME_SCALE/1000)	//音频实际每毫秒对应内部时间长度
 
-#define AUDIO_SOURCE_SAMPLE_RATE (16000) //音频元数据的样本率（16K） 
+//#define AUDIO_SOURCE_SAMPLE_RATE (44100) //音频元数据的样本率 ,该参数已经对外层开放
 #define AUDIO_FREAME_SAMPLES 	(1024) //一帧 AAC audio 帧的采样点数
+
+#define ONE_AAC_FRAME_DURATION  (AUDIO_TIME_SCALE * AUDIO_FREAME_SAMPLES/AUDIO_SOURCE_SAMPLE_RATE) //((AUDIO_FREAME_SAMPLES/AUDIO_SOURCE_SAMPLE_RATE)* AUDIO_TIME_SCALE) 1帧AAC音频帧播放时所占内部时长 
 
 
 typedef unsigned int Fmp4TrackId; //轨道ID
@@ -648,7 +650,7 @@ typedef AudioSampleEntry_t mp4a_box;
 
 
 /****第八级box**********************************************************/
-
+#pragma pack(1) //临时指定1字节对齐
 //该结构和标准文件解析出来的结构差异较大，如有问题后期进一步修改
 typedef struct  ESDescriptorBox_t
 {
@@ -657,79 +659,60 @@ typedef struct  ESDescriptorBox_t
 //12 bytes
 
 	//---Detailed-Information--------------------------------------
-	unsigned char 	tag1;		// descriptor_type    MP4ESDescrTag
-	unsigned char   ex_string1[3];
+	unsigned char 	tag1;		// 3	(0x03)   
+	unsigned char   ex_string1[3];//0x80 0x80 0x80 
 	
 	unsigned char 	tag_size1;	
 	unsigned short 	es_id;
-	unsigned char 	Stream_dependence_flag;
+//19 bytes
+	unsigned char 	Stream_dependence_flag:1; 
+	unsigned char 	URL_flag:1; 
+	unsigned char 	OCR_stream_flag:1;
+	unsigned char	Stream_priority:5;
 //20 bytes
-	unsigned char 	URL_flag; 
-	unsigned char 	OCR_stream_flag;
-	unsigned char	Stream_priority;
 
 	
 	//---Decoder Config Descriptor----------------------------------
-	unsigned char 	tag2;
-//24 bytes	
-
-	unsigned char   ex_string2[3];
+	unsigned char 	tag2;		   //4 (0X04)
+	unsigned char   ex_string2[3]; //0x80 0x80 0x80 
 	unsigned char 	tag_size2;
-//28
+//25 bytes
 	unsigned char 	Object_type_indication;	//MPEG-4 audio (0X40)
-	unsigned char 	Stream_type;
-	unsigned char 	Up_stream;
-	unsigned char	Reserved[1];
-//32 bytes
-
+	unsigned char 	Stream_type:6;
+	unsigned char 	Up_stream:1;
+	unsigned char	Reserved:1;
+//27 bytes
+	unsigned char   bufferSizeDB[3];  //如若4字节对齐后边会少了2字节填充
+//30 bytes
 	unsigned int	Max_bitrate;
 	unsigned int 	Avg_bitrate;
-//40 bytes
+//38 bytes
 
 	//---Audio Decoder Specific Info--------------------------------
-	unsigned char	Tag3;		//5 (0X05)
-	unsigned char   ex_string3[3];
-	unsigned char	Tag_size3;	//5 (0X05)
-	unsigned char	reserved02[3];
-//48 bytes
+	unsigned char	Tag3;			//5 (0X05)
+	unsigned char   ex_string3[3];  //0x80 0x80 0x80
+	unsigned char	Tag_size3;		
+//43 bytes
+	unsigned short	Audio_object_type:5;		
+	unsigned short	Sampling_freq_index:4;	
+	unsigned short	channelConfiguration:4;			
+	unsigned short	cpConfig:2;
+	unsigned short  directMapping:1;
+//45 bytes
+	//---SLConfigDescrTag--------------------------------
+	unsigned char	Tag4;			//6 (0X06)
+	unsigned char   ex_string4[3];  //0x80 0x80 0x80
+	unsigned char 	Length_Field;	//0x01
+	unsigned char	predefined;		//0x02
+//51 bytes
 
-	unsigned int	Audio_object_type;		//2 (0X00000002)
-	unsigned int	Sampling_freq_index;	//4 (0X00000004)
-	unsigned int	Sampling_freq;			//(0X00000000)
-	unsigned int	Sbr_Flag;
-	unsigned int	Ext_audio_object_type;
-	unsigned int	Ext_sampling_freq_index;
-	unsigned int	Ext_sampling_freq;
-//76 bytes
-
-	unsigned char	Frame_length_flag;
-	unsigned char	Depends_on_core_coder;
-	unsigned char	reserved03_1[2];
-//80 bytes
-
-	unsigned int 	Core_coder_delay; 
-//84 bytes
-
-	unsigned char 	Extension_flag; 
-	unsigned char	reserved03_2[3];
-//88 bytes
-
-	unsigned int 	Layer_nr; 			//(0X00000000) 
-	unsigned int 	Num_of_subframe;	//(0X00000000) 
-	unsigned int 	Layer_length;		//(0X00000000) 
-//100 bytes
-
-	unsigned char	aac_section_data_resilience_flag;	//(0X00) 
-	unsigned char	aac_scale_factor_data_resilience_flag; //(0X00)
-	unsigned char	aac_spectral_data_resilience_flag;
-	unsigned char	Extension_flag3;
-//104 bytes
 
 }esds_box;
 
 
 /*============================================================================
 */
+#pragma pack(4) //恢复4字节对齐
 
 //box 的等级 宏，便于区分
 #define lve1
@@ -937,7 +920,107 @@ tfra_audio_t * tfra_audio_init();
 mfro_box * mfro_box_init();
 
 
+/***一般mp4文件部分特有 box结构********************************************************************************
+专门针对普通mp4文件部分
+*********************************************************************************************************/
 
+typedef struct FreeSpaceBox_t
+{
+	BoxHeader_t header;
+	unsigned char data[0];
+	
+}free_box;
+
+typedef struct EditBox_t
+{
+	BoxHeader_t header;
+	
+}edts_box;
+
+typedef struct EditListBox_t
+{
+	FullBoxHeader_t header;
+	unsigned int entry_count; //一般为1
+	/*
+	for (i=1; i <= entry_count; i++) 
+	{
+		{ // version==0
+			unsigned int(32) segment_duration;
+			int(32) media_time;
+		}
+		int(16) media_rate_integer;
+		int(16) media_rate_fraction = 0;
+	}
+	*/
+	unsigned int 	segment_duration;
+	int 			media_time;
+	
+}elst_box;
+
+
+typedef struct SyncSampleBox_t
+{
+	FullBoxHeader_t header;
+	unsigned int entry_count; //一般为 1
+	/*
+	int i;
+	for (i=0; i < entry_count; i++) {
+	unsigned int(32) sample_number;
+	}
+	*/
+	unsigned int sample_number; //entry_count 个 
+}stss_box;
+
+
+typedef struct CompositionOffsetBox_t
+{
+	FullBoxHeader_t header;
+	unsigned int entry_count;
+	/* 该部分独立出去
+	int i;
+	if (version==0) {
+	for (i=0; i < entry_count; i++) {
+	unsigned int(32) sample_count;
+	unsigned int(32) sample_offset;
+	}
+	}
+	*/
+
+
+}ctts_box;
+
+typedef struct _CttsEntries_t
+{
+	unsigned int sample_count;
+	unsigned int sample_offset;
+
+}CttsEntries_t;
+
+typedef struct UserDataBox_t
+{
+	BoxHeader_t header;
+
+}udta_box;
+
+
+ 
+typedef struct MetaBox_t
+{
+	FullBoxHeader_t header;
+	hdlr_box  theHandler;
+	/*
+	PrimaryItemBox primary_resource; // optional
+	DataInformationBox file_locations; // optional
+	ItemLocationBox item_locations; // optional
+	ItemProtectionBox protections; // optional
+	ItemInfoBox item_infos; // optional
+	IPMPControlBox IPMP_control; // optional
+	ItemReferenceBox item_refs; // optional
+	ItemDataBox item_data; // optional
+	Box other_boxes[]; // optional
+	*/
+
+}Meta_box;
 
 
 

@@ -883,104 +883,91 @@ stsd_box*  AudioSampleEntry(unsigned char channelCount,unsigned short sampleRate
 
 	memcpy((unsigned char*)mp4a_item + 8  ,mp4a,sizeof(mp4a));
 
-	#if 0
-	const unsigned char esds[] = {
-			0x00, 0x00, 0x00, 0x00, // version 0 + flags
-
-			/***Detailed-Information***/
-            0x03, 				// tag1  
-            0x80,0x80,0x80,	//可选的扩展描述符类型标记字符串:https://stackoverflow.com/questions/30998150/build-an-esds-box-for-an-mp4-that-firefox-can-play
-            0x06, 		// tag_size1  74 + 2 +6 = 82字节(0x52) 从该字节后边开始到该数组结束的长度        	
-            0x00, 0x02, 	// es_id
-            0x00, 		// Stream dependence flag
-            0x00, 		// URL flag
-            0x00, // OCR stream flag
-            0x00, // Stream priority
-            
-            /**
-             *当 objectTypeIndication 为0x40时，为MPEG-4 Audio（MPEG-4 Audio generally is thought of as AAC
-             * but there is a whole framework of audio codecs that can Go in MPEG-4 Audio including AAC, BSAC, ALS, CELP,
-             * and something called MP3On4），如果想更细分format为aac还是mp3，
-             * 可以读取 MP4DecSpecificDescr 层 data[0] 的前五位
-             */
-             
-             /*** Decoder Config Descriptor***/
-            0x04, // tag1
-            0x80,0x80,0x80,	//可选的扩展描述符类型标记字符串
-            0x0E, // tag1_size  58字节+2字节（tag和size）+ 14字节 = 74字节
-            0x40, // Object type indication
-            0x05, // Stream type
-            0x00, 	// Up stream
-            0x00,0x00,0x01,	//Reserved
-            0x00,0x01,0xF4,0x00, //Max bitrate (12800)
-            0x00,0x00,0x00,0x00, //Avg bitrate
-
-			/***Audio Decoder Specific Info***/
-			0x05,	//tag
-			0x80,0x80,0x80,	//可选的扩展描述符类型标记字符串
-			0x3A,//58字节（0x3A） 0x33,	//tag_size  后边51(0x33)个字节
-			0x00,0x00,   //reserved
-			0x00,0x00,0x00,0x02, //Audio object type ; 02 - AAC LC or backwards compatible HE-AAC (Most realworld AAC falls in one of these cases) 
-			0x00,0x00,0x00,0x04, //Sampling freq index
-			0x00,0x00,0x00,0x00, //Sampling freq
-			0x00,0x00,0x00,0x00, //Sbr Flag
-			0x00,0x00,0x00,0x00, //Ext audio object type
-			0x00,0x00,0x00,0x00, //Ext sampling freq index
-			0x00,0x00,0x00,0x00, //Ext sampling freq
-			0x00, //Frame length flag
-			0x00, //Depends on core coder
-			0x00,0x00,   //reserved
-			0x00,0x00,0x00,0x00, //Core coder delay
-			0x00, //Extension flag
-			0x00,0x00,0x00, //reserved
-			0x00,0x00,0x00,0x00, //Layer nr
-			0x00,0x00,0x00,0x00, //Num of subframe
-			0x00,0x00,0x00,0x00, //Layer length
-			0x00, //aac section data resilience flag
-			0x00, //aac scale factor data resilience flag
-			0x00, //aac spectral data resilience flag
-			0x00, //Extension flag3
+	unsigned short Audio_object_type = 0;
+	if(44100 == sampleRate)
+	{
+		Audio_object_type = 0x1208; //值详解见下方调用处
+	}
+	else if(16000 == sampleRate) 
+	{
+		Audio_object_type = 0x1408;
+	}
+	else if(8000 == sampleRate)
+	{
+		Audio_object_type = 0x1588;
+	}
+	else
+	{
+		ERROR_LOG("sampleRate not support !\n");
+		return NULL;
+	}
+	DEBUG_LOG("sampleRate (%d)\n",sampleRate);
 			
-		};  
-	#else
 		const unsigned char esds[] = {
 		0x00, 0x00, 0x00, 0x00, // version 0 + flags
 		
 		/***Detailed-Information***/
         0x03, 				// tag1 
         0x80,0x80,0x80,		//可选的扩展描述符类型标记字符串
-		0x25,				//Tag1 size
+		0x25,//0x1C,//0x22,				//Tag1 size
 		0x00, 0x02,			//ES_ID
-		0x00,				//Stream dependence flag
-		/**
-		*当 objectTypeIndication 为0x40时，为MPEG-4 Audio（MPEG-4 Audio generally is thought of as AAC
+		0x00,				//Stream dependence flag+URL_Flag+OCRstreamFlag+streamPriority
+             
+        /*** Decoder Config Descriptor***/
+		0x04,				//Tag2 
+		0x80,0x80,0x80,		//可选的扩展描述符类型标记字符串
+		0x17,//0x1A,		//Tag size2
+		0x40,				//Object type indication  
+		/*
+		* 当 objectTypeIndication 为0x40时，为MPEG-4 Audio（MPEG-4 Audio generally is thought of as AAC
 		* but there is a whole framework of audio codecs that can Go in MPEG-4 Audio including AAC, BSAC, ALS, CELP,
 		* and something called MP3On4），如果想更细分format为aac还是mp3，
 		* 可以读取 MP4DecSpecificDescr 层 data[0] 的前五位
+		* { CODEC_ID_AAC , 0x66 }, /MPEG2 AAC Main/ 
+		* { CODEC_ID_AAC , 0x67 }, /MPEG2 AAC Low/  
+		* { CODEC_ID_AAC , 0x40 },  
 		*/
-             
-        /*** Decoder Config Descriptor***/
-		0x04,				//Tag2
-		0x80,0x80,0x80,		//可选的扩展描述符类型标记字符串
-		0x17,				//Tag size2
-		0x40,				//Object type indication
-		0x15,0x00,0x00,0x00,
-		0x00,0x01,0xF4,0x00,//Max bitrate 128000
-		0x00,0x00,0x00,0x00,//Avg bitrate
-
+		0x15,				//streamType+upStream+reserved
+		/*----------15的详细解释--------------------------------------------------
+             		:0001 01        :streamType  5是Audio Stream, 14496-1 Table6
+             		:0       		:upStream
+             		:1      		:reserved
+         ------------------------------------------------------------------------*/    		
+		0x00,0x00,0x00,			//bufferSizeDB ,解码缓冲区大小（640字节0x280）
+		(sampleRate >>24)&0xFF, //Max bitrate :44100(0xAC44) 16000(0x3E80) 8000(0x1F40)
+		(sampleRate >>16)&0xFF,
+		(sampleRate >>8)&0xFF,
+		(sampleRate)&0xFF,
+		(sampleRate >>24)&0xFF, //Avg bitrate 
+		(sampleRate >>16)&0xFF,
+		(sampleRate >>8)&0xFF,
+		(sampleRate)&0xFF,
+		
 		/***Audio Decoder Specific Info***/
-		0x05,				//Tag3
-		0x80,0x80,0x80,		//可选的扩展描述符类型标记字符串
-		0x05, 				//Tag size3
-		0x12,				//Audio object type
-		0x10,0x56,0xE5,0x00,		//?????????
+		0x05,					//Tag3
+		0x80,0x80,0x80,			//可选的扩展描述符类型标记字符串
+		0x02,//0x08, 			//Tag size3
+
+		/*	0x15,0x88,	(8000HZ) // Audio object type
+		  	0x14,0x08,	(16000HZ)			
+		 	0x12,0x08,  	(44100HZ)*/
+		(Audio_object_type >> 8)&0xFF,
+		(Audio_object_type)&0xFF,
+		/*----------1408的详细解释----------------------
+             :1408(hex) = 0001 0100 0000 1000(bit)
+             :0001 0          :audioObjectType 2 GASpecificConfig (观察好几个文件都是这个值，没有找到根源)
+             :100 0           :samplingFrequencyIndex 0xb(1011)-->8000  0x8(1000)--> 16000  0x04(0100)-->44100 
+             :000 1           :channelConfiguration 1 
+             :00         	  :cpConfig
+             :0        	  	  :directMapping
+		-------------------------------------------------*/
 		/***新版本新加的部分***/
 		0x06,
 		0x80,0x80,0x80,
 		0x01,
 		0x02 
 		};
-	#endif
+
 	unsigned int esds_length = sizeof(esds_box);
 	DEBUG_LOG("esds_item malloc size(%d) sizeof(esds[]) = %d\n",esds_length,sizeof(esds));
 	esds_box*esds_item = (esds_box*)malloc(esds_length);
@@ -1747,12 +1734,19 @@ avcc_box_info_t *	avcc_box_init(unsigned char* naluData, int naluSize)
 		#endif
 		
 		avcc_box_info.avcc_buf = avcc_item;
-		avcc_box_info.buf_length = box_len;
+		avcc_box_info.buf_length = box_len;
 	return &avcc_box_info;
 	
 }
 
 #endif
+
+
+
+/***一般mp4文件部分********************************************************************************
+专门针对普通mp4文件部分
+*********************************************************************************************************/
+
 
 
 

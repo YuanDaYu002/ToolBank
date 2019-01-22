@@ -329,7 +329,7 @@ traf_audio_t* traf_audio_init()
 
 
 fmp4_file_box_t fmp4BOX = {0}; 
-fmp4_file_box_t* fmp4_box_init()
+fmp4_file_box_t* fmp4_box_init(unsigned short audio_sampling_rate)
 {
 	
 	DEBUG_LOG("into fmp4_box_init 01\n");
@@ -378,7 +378,7 @@ fmp4_file_box_t* fmp4_box_init()
 		args_audio.timescale = AUDIO_TIME_SCALE;  //作用 mdhd box
 		args_audio.duration = 0;				  //作用 mdhd box
 		args_audio.channelCount = 1;
-		args_audio.sampleRate = AUDIO_SOURCE_SAMPLE_RATE; //音频源数据样本率
+		args_audio.sampleRate = audio_sampling_rate;//AUDIO_SOURCE_SAMPLE_RATE; //音频源数据样本率
 		fmp4BOX.trak_audio = trak_audio_init(&args_audio);
 		if(NULL == fmp4BOX.trak_audio)
 		{
@@ -492,7 +492,14 @@ fmp4_file_box_t* fmp4_box_init()
 */
 fmp4_out_info_t  out_info = {0};	//输出文件的存储信息
 char out_mode = -1; 				//输出文件的存储模式
-int  Fmp4_encode_init(fmp4_out_info_t * info,unsigned int Vframe_rate,unsigned int Aframe_rate)
+#define RECODE_AAC_FRAME_TO_FILE 0   //记录AAC帧，生成AAC文件 ，调试用
+int AAC_fd;  //AAC文件描述符
+//-------------------------------------------
+#define USE_44100_AAC_FILE 0
+#define AAC_4410_BUF_SIZE (1024)
+int AAC_44100_fd; //标准44100HZ的AAC文件描述符
+unsigned char * AAC_44100_buf = NULL; //临时缓存BUF
+int  Fmp4_encode_init(fmp4_out_info_t * info,unsigned int Vframe_rate,unsigned int Aframe_rate,unsigned short audio_sampling_rate)
 {
 
 	if(NULL == info)
@@ -515,6 +522,24 @@ int  Fmp4_encode_init(fmp4_out_info_t * info,unsigned int Vframe_rate,unsigned i
 		ERROR_LOG("you need init out put file info!\n");
 		return -1;
 	}
+
+	if(RECODE_AAC_FRAME_TO_FILE) //DEBUG
+		AAC_fd = open("/jffs0/aac.aac", O_CREAT | O_WRONLY | O_TRUNC, 0664);
+
+	/***打开一个标准的AAC文件，获取帧来填充数据*/
+	#if USE_44100_AAC_FILE
+	AAC_44100_fd = open("/jffs0/test_AAC_44100.aac",O_RDONLY);
+	if(AAC_44100_fd <0)
+	{
+		ERROR_LOG("open file failed !\n");
+		return -1;
+	}
+
+	AAC_44100_buf = (unsigned char*)malloc(AAC_4410_BUF_SIZE);
+	if(NULL != AAC_44100_buf)
+		memset(AAC_44100_buf,0,AAC_4410_BUF_SIZE);
+	#endif
+	/******************************************/
 	
 		
 	if(out_mode == SAVE_IN_FILE) //保存到文件
@@ -567,7 +592,7 @@ int  Fmp4_encode_init(fmp4_out_info_t * info,unsigned int Vframe_rate,unsigned i
 #if 1
 	//box_init
 	DEBUG_LOG("into fmp4_box_init!\n");
-	fmp4_file_box_t* box =  fmp4_box_init();
+	fmp4_file_box_t* box =  fmp4_box_init(audio_sampling_rate);
 	if(NULL == box)
 	{
 		ERROR_LOG("fmp4_box_init failed !\n");
@@ -1207,6 +1232,43 @@ int	remuxVideo(void *video_frame,unsigned int frame_length,unsigned int frame_ra
 	frame_rate:是外部传入音频数据的原有帧率
 	返回值：失败：-1  		 成功：0
 */
+typedef struct _adts_fixed_header_t  
+{   
+ unsigned int syncword:12;  				//0-11 	bit 帧同步标识一个帧的开始，固定为0xFFF
+ unsigned int ID:1;  						//12 	bit MPEG 标示符。0表示MPEG-4，1表示MPEG-2
+ unsigned int layer:2;  					//13-14 bit 固定为'00'
+ unsigned int protection_absent:1;  		//15 	bit 标识是否进行误码校验。0表示有CRC校验，1表示没有CRC校验 
+ unsigned int profile:2;  					//16-17 bit 标识使用哪个级别的AAC。1: AAC Main 2:AAC LC (Low Complexity) 3:AAC SSR (Scalable Sample Rate) 4:AAC LTP (Long Term Prediction)
+ unsigned int sampling_frequency_index:4;  	//18-21 bit 标识使用的采样率的下标
+ unsigned int private_bit:1;  				//22 	bit 私有位，编码时设置为0，解码时忽略
+ unsigned int channel_configuration:3;  	//23-25 bit 标识声道数
+ unsigned int original_copy:1;  			//26 	bit 编码时设置为0，解码时忽略
+ unsigned int home:1;  						//27  	bit	编码时设置为0，解码时忽略
+ //共28bit   注意字节对齐
+}adts_fixed_header_t;
+
+typedef struct _adts_variable_header_t   
+{   
+ unsigned int copyright_identification_bit:1;  		//0  	bit 编码时设置为0，解码时忽略
+ unsigned int copyright_identification_start:1;  	//1  	bit 编码时设置为0，解码时忽略
+ unsigned int frame_length:13;   					//2-14  bit ADTS帧长度包括ADTS长度和AAC声音数据长度的和。即 aac_frame_length = (protection_absent == 0 ? 9 : 7) + audio_data_length
+ unsigned int adts_buffer_fullness:11;  			//15-25 bit 固定为0x7FF。表示是码率可变的码流
+ unsigned int number_of_raw_data_blocks_in_frame:2; //26-27 bit 表示当前帧有number_of_raw_data_blocks_in_frame + 1 个原始帧(一个AAC原始帧包含一段时间内1024个采样及相关数据)。
+ //共28bit  注意字节对齐
+}adts_variable_header_t;
+/* 实例：
+FF	1111 1111 	0-7
+F9 	1111 1001	8-15		MPEG-2 无 CRC
+60 	0110 0000	16-23		AAC Main  88200HZ（使用的采样率）
+40 	0100 		24-27
+
+	0000		0-3					00 0001 0111 111
+17 	0001 0111	4-11
+FF 	1111 1111	12-19
+FC 	1111 1100	20-27
+DE 	1101 1110	56-63
+0C 	0000 1100	64-71
+*/
 static unsigned long long int A_pre_time_scale_ms = 0; //上一帧的时间戳，用于计算视频帧的时间 duration    
 int	remuxAudio(void *audio_frame,unsigned int frame_length,unsigned int frame_rate,unsigned long long time_scale)
 {
@@ -1220,7 +1282,73 @@ int	remuxAudio(void *audio_frame,unsigned int frame_length,unsigned int frame_ra
 		ERROR_LOG("remux audio not init!\n");
 		return -1;
 	}
+	
+	if(RECODE_AAC_FRAME_TO_FILE) //DEBUG
+		write(AAC_fd, audio_frame, frame_length);
 
+	/***读一个标准的AAC文件，获取帧来填充数据*******DEBUG*******************************/
+	#if USE_44100_AAC_FILE    
+	unsigned char ADTS[7]= {0};
+	int aac_ret = read(AAC_44100_fd,AAC_44100_buf,7);//先读ADTS头部(7字节)，获取长度
+	if(aac_ret <= 0)
+	{
+		ERROR_LOG("read AAC file error ret(%d) !\n",aac_ret);
+		return -1;
+	}
+	if(AAC_44100_buf[0] != 0xFF)
+	{
+		ERROR_LOG("AAC_44100_buf[0] != 0xFF\n");
+		return -1;
+	}
+	/* Get header bit 30 - 42 ,获取AAC帧的长度*/
+    unsigned int AAC_frame_len = ((AAC_44100_buf[3]&0x03)<<11|(AAC_44100_buf[4]&0xFF)<<3|(AAC_44100_buf[5]&0xE0)>>5);
+	DEBUG_LOG("AAC_frame_len(%d)\n",AAC_frame_len);
+	if(AAC_frame_len > AAC_4410_BUF_SIZE)
+	{
+		ERROR_LOG("AAC_4410_BUF_SIZE is overflow!!\n");
+		return -1;
+	}
+	
+	aac_ret = read(AAC_44100_fd,AAC_44100_buf+7,AAC_frame_len-7);//读该帧剩余的部分到缓存
+	if(aac_ret <= 0)
+	{
+		ERROR_LOG("read AAC file error ret(%d) !\n",aac_ret);
+		return -1;
+	}
+	
+	//音频帧指针重定向
+	audio_frame = AAC_44100_buf;
+	frame_length = AAC_frame_len;
+	#endif
+	/*************************************************************************************/
+	
+
+	/*
+	关于AAC音频帧应该注意：
+		Mp4 should not have ADTS headers in the data. Just raw aac frames plus a configuration record in esds.
+	去掉头7个字节的ADTS头：
+	*/
+	adts_fixed_header_t *adts_header = (adts_fixed_header_t*)audio_frame;
+	print_char_array("ADTS:", audio_frame, 10);
+	if((unsigned char)adts_header->syncword == 0xFF)
+	{
+		#if 1
+		if(1)//(adts_header->protection_absent == 0)//有CRC校验
+		{
+			DEBUG_LOG("AAC ADTS header have CRC  checker \n");
+			audio_frame = audio_frame + 9;
+			frame_length = frame_length -9;
+		}
+		else //无CRC校验
+		{
+			DEBUG_LOG("AAC ADTS header not have CRC  checker \n");
+			audio_frame = audio_frame + 7;
+			frame_length = frame_length -7;
+		}
+		#endif
+	}
+
+	
 	 //将该帧放到暂存区
 	 /*该条件的配置最好缓存达标的时长要大于视频，因是以视频帧为主导*/
 	if(buf_remux_audio.frame_count < 2* buf_remux_audio.frame_rate)//缓存区的帧数不够2S，继续将帧数据放入缓存区（防止干扰视频）
@@ -1257,7 +1385,7 @@ int	remuxAudio(void *audio_frame,unsigned int frame_length,unsigned int frame_ra
 		}
 	//	DEBUG_LOG("A_tmp_sample_duration (%d)\n",tmp_sample_duration);
 		A_pre_time_scale_ms = time_scale;//记录当前帧时间戳，下一帧来时使用。
-		buf_remux_audio.sample_info[buf_remux_audio.write_index].trun_sample.sample_duration = t_htonl(tmp_sample_duration);//t_htonl(1024)
+		buf_remux_audio.sample_info[buf_remux_audio.write_index].trun_sample.sample_duration = t_htonl(tmp_sample_duration);//t_htonl(tmp_sample_duration);//t_htonl(ONE_AAC_FRAME_DURATION);//t_htonl(tmp_sample_duration);//t_htonl(1024)
 		buf_remux_audio.sample_info[buf_remux_audio.write_index].trun_sample.sample_size = t_htonl(frame_length);
 		#if 0  // sample_flags 部分
 		buf_remux_audio.sample_info[buf_remux_audio.write_index].trun_sample.sample_flags = t_htonl(33554432 ); //audio 不使用该参数
@@ -1441,7 +1569,7 @@ unsigned int mfra_box_rebuid(OUT mfra_box**mfraBox,OUT unsigned int *len)
 #define moof_mdat_buf_size (1024*300)
 static unsigned int Sequence_number = 0; //mfhd-->Sequence number的记录
 static unsigned int tfra_audio_time = 0; //记录audio tfra box下的time信息
-static unsigned int tfra_video_time = 0; //记录video tfra box下的time信息
+static unsigned int tfra_video_time = 1024; //记录video tfra box下的time信息
 void * remuxVideoAudio(void *args)
 {
 	pthread_detach(pthread_self());	
@@ -2158,6 +2286,12 @@ int remux_exit(void)
 	Sequence_number = 0;
 	if(out_mode == SAVE_IN_FILE)
 		fclose(file_handle);
+
+	if(RECODE_AAC_FRAME_TO_FILE) //DEBUG
+		close(AAC_fd);
+	if(USE_44100_AAC_FILE)  //DEBUG
+		close(AAC_44100_fd);
+	
 	DEBUG_LOG("remux_exit success!\n");
 	return 0;
 
