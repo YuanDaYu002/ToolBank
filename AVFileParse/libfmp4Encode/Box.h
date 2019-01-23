@@ -21,7 +21,7 @@ extern "C"
 
 //#define ONE_SECOND_DURATION (12800)  //1秒时间分割数
 #define VIDEO_TIME_SCALE (90000)   //视频的内部时间戳（1s的分割数）
-#define AUDIO_TIME_SCALE (90000)   //音频的内部时间戳（1s的分割数）
+#define AUDIO_TIME_SCALE (16000)   //音频的内部时间戳（1s的分割数）,填入采样率，用样本数来表述
 
 
 #define VIDEO_ONE_MSC_LEN (VIDEO_TIME_SCALE/1000)    //视频实际每毫秒对应内部时间长度 
@@ -30,7 +30,7 @@ extern "C"
 //#define AUDIO_SOURCE_SAMPLE_RATE (44100) //音频元数据的样本率 ,该参数已经对外层开放
 #define AUDIO_FREAME_SAMPLES 	(1024) //一帧 AAC audio 帧的采样点数
 
-#define ONE_AAC_FRAME_DURATION  (AUDIO_TIME_SCALE * AUDIO_FREAME_SAMPLES/AUDIO_SOURCE_SAMPLE_RATE) //((AUDIO_FREAME_SAMPLES/AUDIO_SOURCE_SAMPLE_RATE)* AUDIO_TIME_SCALE) 1帧AAC音频帧播放时所占内部时长 
+//#define ONE_AAC_FRAME_DURATION  (AUDIO_TIME_SCALE * AUDIO_FREAME_SAMPLES/AUDIO_SOURCE_SAMPLE_RATE) //((AUDIO_FREAME_SAMPLES/AUDIO_SOURCE_SAMPLE_RATE)* AUDIO_TIME_SCALE) 1帧AAC音频帧播放时所占内部时长 
 
 
 typedef unsigned int Fmp4TrackId; //轨道ID

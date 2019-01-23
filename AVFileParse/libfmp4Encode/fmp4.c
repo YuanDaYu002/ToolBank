@@ -1385,7 +1385,7 @@ int	remuxAudio(void *audio_frame,unsigned int frame_length,unsigned int frame_ra
 		}
 	//	DEBUG_LOG("A_tmp_sample_duration (%d)\n",tmp_sample_duration);
 		A_pre_time_scale_ms = time_scale;//记录当前帧时间戳，下一帧来时使用。
-		buf_remux_audio.sample_info[buf_remux_audio.write_index].trun_sample.sample_duration = t_htonl(tmp_sample_duration);//t_htonl(tmp_sample_duration);//t_htonl(ONE_AAC_FRAME_DURATION);//t_htonl(tmp_sample_duration);//t_htonl(1024)
+		buf_remux_audio.sample_info[buf_remux_audio.write_index].trun_sample.sample_duration = t_htonl(tmp_sample_duration);//t_htonl(AUDIO_FREAME_SAMPLES);//t_htonl(tmp_sample_duration);//t_htonl(ONE_AAC_FRAME_DURATION);//t_htonl(1024)
 		buf_remux_audio.sample_info[buf_remux_audio.write_index].trun_sample.sample_size = t_htonl(frame_length);
 		#if 0  // sample_flags 部分
 		buf_remux_audio.sample_info[buf_remux_audio.write_index].trun_sample.sample_flags = t_htonl(33554432 ); //audio 不使用该参数
