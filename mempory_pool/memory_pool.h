@@ -1,6 +1,7 @@
 #ifndef _MEMORY_POOL_H
 #define _MEMORY_POOL_H
 
+#define USE_MEM_POOL     0      //使用缓存池,总控开关（主要用来给音视频编码帧提供内存空间）
 
 /*
 缓存池初始化
