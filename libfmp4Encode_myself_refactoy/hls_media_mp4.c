@@ -2646,15 +2646,27 @@ int mp4_media_get_stats(void* context, file_handle_t* mp4, file_source_t* source
 		DEBUG_LOG("into position A , n_tracks = %d\n",n_tracks);
 	/*---------------------------------------------------------------------------*/
 		
-	m_stat_ptr->n_tracks = n_tracks;
-	for (int i=0; i<n_tracks && i<2; i++) //最大不能超过 2 条轨道
+	for (int i=0; i<m_stat_ptr->track_info.n_tracks && i<2; i++) //最大不能超过 2 条轨道
 	{
+		//在这进行内存的分配，外部不在进行分配
+		//分配track的描述信息空间
+		m_stat_ptr->track_info.track[i] = (track_t*)HLS_MALLOC(context, sizeof(track_t));
+		if(NULL == m_stat_ptr->track_info.track[i])
+		{
+			ERROR_LOG("malloc failed !\n");
+			return -1;
+		}
+		
+
+		//对描述信息进行初始化
+		//m_stat_ptr->track_info.track[i]->
+		
 		
 		//对trak的起始位置（m_stat_ptr->track[i]）进行初始化
 		//--????????????????????????????????????????????????????????????????????????????
 		if (i==0) //video
 		{
-			m_stat_ptr->track[i]=(track_t*)((char*)m_stat_ptr + sizeof(media_stats_t));
+			m_stat_ptr->track_info.track[i]=(track_t*)((char*)m_stat_ptr + sizeof(media_stats_t));
 		}
 		else //i = 1 audio
 		{

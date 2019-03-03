@@ -107,7 +107,7 @@ int  generate_playlist_test(char* filename, char* playlist, int* numberofchunks)
 		return -1;
 	}
 	
-	//---打开文件--------------------------------------------
+	//---打开mp4文件--------------------------------------------
 	handle 	= (char*)malloc(source->handler_size);
 	if ( !handle )
 	{
@@ -121,7 +121,7 @@ int  generate_playlist_test(char* filename, char* playlist, int* numberofchunks)
 		return -1;
 	}
 	
-
+	//---获取文件的状态信息--------------------------------------------
 	stats_size 			= media->get_media_stats(NULL, handle, source, NULL, 0);
 	stats_buffer		= (char*)malloc(stats_size);
 	if ( !stats_buffer )
@@ -134,6 +134,7 @@ int  generate_playlist_test(char* filename, char* playlist, int* numberofchunks)
 	
 	stats_size 	  = media->get_media_stats(NULL, handle, source, (media_stats_t*)stats_buffer, stats_size);
 
+	//---生成m3u8文件--------------------------------------------
 	DEBUG_LOG("into position G\n");	
 	pure_filename = get_pure_filename(filename); //get only filename without any directory info
 	if (pure_filename)

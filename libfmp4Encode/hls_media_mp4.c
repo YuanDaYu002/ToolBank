@@ -812,8 +812,11 @@ typedef struct _sample_offset_t
 sample_offset_t sample_offset = {0};	//描述音视频 sample 偏移信息。
 
 /*
-初始化（整个文件）video/audio帧的 size 信息
-返回：成功：0	失败-1
+初始化 全局参数 sample_size
+即初始化（整个文件）video/audio帧的 size 信息
+返回：
+	成功：0	
+	失败：-1
 注意：在调用该接口前需确保 video_frames 和 audio_frames已经初始化
 */
 int init_sample_size_array(void* context, file_handle_t* mp4, file_source_t* source,MP4_BOX* root)
@@ -830,7 +833,7 @@ int init_sample_size_array(void* context, file_handle_t* mp4, file_source_t* sou
 		return -1;
 	}
 
-	if(sample_size.init_done)
+	if(sample_size.init_done) //不能够反复初始化
 	{
 	 	ERROR_LOG("sample_size Already initialized !\n");
 	 	return 0;
@@ -955,8 +958,11 @@ ERR:
 
 
 /*
-初始化（整个文件）video/audio帧  的 offset信息
-返回：成功：0	失败-1
+初始化全局参数 sample_offset
+即初始化（整个文件）video/audio帧  的 offset信息
+返回：
+	成功：0	
+	失败-1
 注意：在调用该接口前需确保 video_frames 和 audio_frames已经初始化
 */
 int init_sample_offset_array(void* context, file_handle_t* mp4, file_source_t* source,MP4_BOX* root)
@@ -973,7 +979,7 @@ int init_sample_offset_array(void* context, file_handle_t* mp4, file_source_t* s
 		return -1;
 	}
 	
-	if(sample_offset.init_done)
+	if(sample_offset.init_done) //不能够反复初始化
 	{
 		ERROR_LOG("sample_offset Already initialized !\n");
 		return 0;
@@ -985,28 +991,39 @@ int init_sample_offset_array(void* context, file_handle_t* mp4, file_source_t* s
 	unsigned int* Atrun_sample_array = NULL; //记录每个 audio trun里边 sample_count 字段信息
 	MP4_BOX** moof_array = NULL;
 	MP4_BOX** traf_array = NULL;
+	MP4_BOX** mdat_array = NULL;
 
-	/*---确定 Atrun_num Vtrun_num 的值----------------------------------------------------------------*/
-	int moof_num = find_box_one_level(context,root,"moof",&moof_array);
-	DEBUG_LOG("moof_num = %d\n",moof_num);
+	int traf_num = 0;
+	int moof_num = 0;
 	int i = 0;
+	int j = 0;
+	int track_id = -1;
+	
+	/*---确定 Audio trun box 和 Video trun box 的个数----------------------------------------------------------*/
+	
+	moof_num = find_box_one_level(context,root,"moof",&moof_array);
+	if(moof_num < 0)
+	{
+		ERROR_LOG("find_box_one_level!\n");
+		goto ERR;
+	}
+	
+	DEBUG_LOG("moof_num = %d\n",moof_num);
+
 	for(i=0 ; i<moof_num ; i++)
 	{
-		int traf_num = find_box_one_level(context,moof_array[i],"traf",&traf_array);
+		traf_num = find_box_one_level(context,moof_array[i],"traf",&traf_array);
 		DEBUG_LOG("moof_array[%d] --> traf_num = %d\n",i,traf_num);
-		int j = 0;
+
 		for(j=0 ; j<traf_num ; j++)
 		{
 			/*---区分开 video/audio traf 的根节点---*/	
 			//先解析tfhd确定当前traf的trak_id
-			int track_id;
 			MP4_BOX* tfhd =  find_box(traf_array[j],"tfhd");
 			if(NULL == tfhd)
 			{
 				ERROR_LOG("find_box failed!\n");
-				HLS_FREE(moof_array);
-				HLS_FREE(traf_array);
-				return -1;
+				goto ERR;
 			}
 			else
 			{
@@ -1030,62 +1047,61 @@ int init_sample_offset_array(void* context, file_handle_t* mp4, file_source_t* s
 			
 		}
 
-		HLS_FREE(traf_array);
+		HLS_FREE(traf_array); 
 		traf_array = NULL;
 	}
-	HLS_FREE(moof_array);
-	moof_array = NULL;
+	//HLS_FREE(moof_array); 后边直接用，结尾再释放，减少CPU冗余计算
+	//moof_array = NULL;
 		
 	if(Vtrun_num != Atrun_num ||moof_num != Vtrun_num)
 	{
 		ERROR_LOG("moof_num(%d) != Vtrun_num(%d) != Atrun_num(%d) !\n",moof_num,Vtrun_num,Atrun_num);
-		return -1;
+		goto ERR;
 	}
 
-	/*--------------------------------------------------------------------------------------------*/
+	/*---分配数组的内存，记录每个 video/audio trun box 里边的 samples（帧）数量--------------------------------*/
 
-	//分配数组的内存
 	Atrun_sample_array = (unsigned int *)HLS_MALLOC(context, Atrun_num * sizeof(int));
 	if(NULL == Atrun_sample_array)
 	{
 		ERROR_LOG("malloc failed !\n");
-		return -1;;
+		goto ERR;
 	}
 
 	Vtrun_sample_array = (unsigned int *)HLS_MALLOC(context, Vtrun_num * sizeof(int));
 	if(NULL == Vtrun_sample_array)
 	{
 		ERROR_LOG("malloc failed !\n");
-		HLS_FREE(Atrun_sample_array);
-		return -1;
+		goto ERR;
 	}
 	
-	/*----初始化 Vtrun_sample_array/Atrun_sample_array 数组------------------------------------*/
+	/*----初始化  数组元素(Vtrun_sample_array[]/Atrun_sample_array[])--------------------------------------------*/
 	/*
 		确定mdat box里边的samples数据，video/audio         samples 谁填充在前边，谁在后边
-		即确定video/audio trak 的先后顺序
+		即确定video/audio trak 的先后顺序:
+		在 traf[0]下解析 tfhd 确定traf[0] 的 trak_id 是 哪个，即能确定哪个trak在前边
 	*/
-	//在 traf[0]下解析 tfhd 确定traf[0] 的 trak_id 是 哪个，即能确定哪个trak在前边
-	int track_id;
 	int first_track = -1; //video/audio 轨道的先后顺序（mdat box里边谁的数据排在前边）
 	
+	/* D
 	moof_num = find_box_one_level(context,root,"moof",&moof_array);
+	*/
 	unsigned int Atrun_index = 0;  
 	unsigned int Vtrun_index = 0;
 	
 	for(i=0 ; i<moof_num ; i++)
 	{
-		int traf_num = find_box_one_level(context,moof_array[i],"traf",&traf_array);
-		int j = 0;
+		traf_num = find_box_one_level(context,moof_array[i],"traf",&traf_array);
+	
 		for(j=0 ; j<traf_num ; j++)
 		{
-			if(0 == i)//确定排在前边的轨道是video 还是 audio 轨道
+			if(0 == i && 0 == j)//由第一个 moof 的第一个 traf 来确定排在前边的轨道是video 还是 audio 轨道
 			{
-				MP4_BOX* tfhd =  find_box(traf_array[0],"tfhd");
+				MP4_BOX* tfhd =  find_box(traf_array[j],"tfhd");
 				if(NULL == tfhd)
 				{
 					ERROR_LOG("find_box failed!\n");
-					return -1;
+					goto ERR;
 				}
 				else
 				{
@@ -1104,9 +1120,7 @@ int init_sample_offset_array(void* context, file_handle_t* mp4, file_source_t* s
 			if(NULL == tfhd)
 			{
 				ERROR_LOG("find_box failed!\n");
-				HLS_FREE(traf_array);
-				HLS_FREE(moof_array);
-				return -1;
+				goto ERR; 
 			}
 			else
 			{
@@ -1119,21 +1133,16 @@ int init_sample_offset_array(void* context, file_handle_t* mp4, file_source_t* s
 			if(NULL == tfhd)
 			{
 				ERROR_LOG("find_box failed!\n");
-				HLS_FREE(traf_array);
-				HLS_FREE(moof_array);
-				return -1;
+				goto ERR;
 			}
 
 			if(track_id == get_video_trak_id()) // 是 video traf
 			{
-		
 				unsigned int sample_count = 0;
 				source->read(mp4,&sample_count,4,trun->box_first_byte+12,0);
 				sample_count = t_ntohl(sample_count);
-				
 				Vtrun_sample_array[Vtrun_index] = sample_count;
-				Vtrun_index ++;
-				
+				Vtrun_index ++;				
 			}
 
 			if(track_id == get_audio_trak_id()) // 是 audio traf
@@ -1141,10 +1150,8 @@ int init_sample_offset_array(void* context, file_handle_t* mp4, file_source_t* s
 				unsigned int sample_count = 0;
 				source->read(mp4,&sample_count,4,trun->box_first_byte+12,0);
 				sample_count = t_ntohl(sample_count);
-				
 				Atrun_sample_array[Atrun_index] = sample_count;
-				Atrun_index ++;
-				
+				Atrun_index ++;				
 			}
 				
 		}
@@ -1152,8 +1159,8 @@ int init_sample_offset_array(void* context, file_handle_t* mp4, file_source_t* s
 		traf_array = NULL;
 			
 	}
-	HLS_FREE(moof_array);
-	moof_array = NULL;
+	//HLS_FREE(moof_array);
+	//moof_array = NULL;
 	
 	if(Vtrun_index != Vtrun_num ||Atrun_index != Atrun_num)
 	{
@@ -1168,25 +1175,28 @@ int init_sample_offset_array(void* context, file_handle_t* mp4, file_source_t* s
 	if(NULL == sample_offset.V_offset_array)
 	{
 		ERROR_LOG("malloc failed !\n");
-		return -1;
+		goto ERR;
 	}
 
 	sample_offset.A_offset_array = HLS_MALLOC(context, frame_info.audio_frames * sizeof(int));
 	if(NULL == sample_offset.A_offset_array)
 	{
 		ERROR_LOG("malloc failed !\n");
-		return -1;
+		goto ERR;//所有全局指针变量指向的内存统一在线程最后退出时释放。
 	}
-	/*-----------------------------------------------------------------------------------------------*/
 
 	
 	/*===获取每个音视频帧的 偏移信息数组==============================================================*/
-	
-	MP4_BOX** mdat_array = NULL;
+
+	unsigned int  V_offset_index = 0; 	//sample_offset->V_offset_array 的下标值
+	unsigned int  A_offset_index = 0; 	//sample_offset->A_offset_array 的下标值
+	unsigned int  V_size_index = 0; 	//sample_size->V_size_array的下标值
+	unsigned int  A_size_index = 0; 	//sample_size->A_size_array的下标值
+
 	if(frame_info.inited != 1)
 	{
 		ERROR_LOG("frame num not init!\n");
-		return -1;
+		goto ERR;
 	}
 	
 	int mdat_num = find_box_one_level(context,root,"mdat",&mdat_array);
@@ -1194,34 +1204,28 @@ int init_sample_offset_array(void* context, file_handle_t* mp4, file_source_t* s
 	if(mdat_num != moof_num )
 	{
 		ERROR_LOG("moof num != mdat num !\n");
-		HLS_FREE(mdat_array);
-		return -1;
+		goto ERR;
 	}
 
 	if(mdat_num != Atrun_index || mdat_num != Vtrun_index )
 	{
 		ERROR_LOG("mdat_num(%d) Atrun_index(%d) Vtrun_index(%d)\n",mdat_num,Atrun_index,Vtrun_index);
-		return -1;
+		goto ERR;
 	}
-
-	unsigned int  V_sample_index = 0; 	//sample_offset->V_offset_array 的下标值
-	unsigned int  A_sample_index = 0; 	//sample_offset->A_offset_array 的下标值
-	unsigned int  V_size_index = 0; 	//sample_size->V_size_array的下标值
-	unsigned int  A_size_index = 0; 	//sample_size->A_size_array的下标值
 	
 	for(i=0 ; i<mdat_num ; i++)  
 	{
 		if(first_track == get_video_trak_id()) //在前边的是video帧
 		{
-			unsigned int V_start_pos = mdat_array[i]->box_first_byte + 8;//记录 mdat box video 数据部分开始位置
+			unsigned int V_start_pos = mdat_array[i]->box_first_byte + 8;	//记录 mdat box video 数据部分开始位置
 			unsigned int A_start_pos = mdat_array[i]->box_first_byte + 8;	//记录 mdat box audio 数据部分开始位置
 			unsigned int j = 0; 
 			unsigned int count_V_sample_size = 0;
 			unsigned int count_A_sample_size = 0;
 			for(j=0 ; j < Vtrun_sample_array[i] ; j++) //记录视频帧的偏移
 			{
-				sample_offset.V_offset_array[V_sample_index] = 	V_start_pos + count_V_sample_size;
-				V_sample_index ++;
+				sample_offset.V_offset_array[V_offset_index] = 	V_start_pos + count_V_sample_size;
+				V_offset_index ++;
 				count_V_sample_size += sample_size.V_size_array[V_size_index];
 				V_size_index ++;
 				A_start_pos += count_V_sample_size; //音频sample开始位置偏移到视频sample的后边	
@@ -1230,8 +1234,8 @@ int init_sample_offset_array(void* context, file_handle_t* mp4, file_source_t* s
 			for(j=0 ; j < Atrun_sample_array[i] ; j++) //记录音频帧的偏移
 			{
 			
-				sample_offset.A_offset_array[A_sample_index] = 	A_start_pos + count_A_sample_size;
-				A_sample_index ++;
+				sample_offset.A_offset_array[A_offset_index] = 	A_start_pos + count_A_sample_size;
+				A_offset_index ++;
 				count_A_sample_size +=  sample_size.A_size_array[A_size_index];
 				A_size_index ++;	
 			}
@@ -1247,8 +1251,8 @@ int init_sample_offset_array(void* context, file_handle_t* mp4, file_source_t* s
 			for(j=0 ; j < Atrun_sample_array[i] ; j++) //记录音频帧的偏移
 			{
 			
-				sample_offset.A_offset_array[A_sample_index] = 	A_start_pos + count_A_sample_size;
-				A_sample_index ++;
+				sample_offset.A_offset_array[A_offset_index] = 	A_start_pos + count_A_sample_size;
+				A_offset_index ++;
 				count_A_sample_size +=  sample_size.A_size_array[A_size_index];
 				A_size_index ++;	
 				V_start_pos += count_A_sample_size; //视频sample开始位置偏移到音频sample的后边	
@@ -1256,8 +1260,8 @@ int init_sample_offset_array(void* context, file_handle_t* mp4, file_source_t* s
 						
 			for(j=0 ; j < Vtrun_sample_array[i] ; j++) //记录视频帧的偏移
 			{
-				sample_offset.V_offset_array[V_sample_index] = 	V_start_pos + count_V_sample_size;
-				V_sample_index ++;
+				sample_offset.V_offset_array[V_offset_index] = 	V_start_pos + count_V_sample_size;
+				V_offset_index ++;
 				count_V_sample_size += sample_size.V_size_array[V_size_index];
 				V_size_index ++;
 	
@@ -1268,16 +1272,37 @@ int init_sample_offset_array(void* context, file_handle_t* mp4, file_source_t* s
 		else
 		{
 			ERROR_LOG("first_track is not audio or video!\n");
-			return -1;
+			goto ERR;
 		}
 		
 			
 	}
-	HLS_FREE(mdat_array);
-	mdat_array = NULL;
-	/*================================================================================================*/
 
+	/*================================================================================================*/
+	if(NULL != moof_array)
+		HLS_FREE(moof_array);
+	if(NULL != traf_array)
+		HLS_FREE(traf_array);
+	if(NULL != Atrun_sample_array)
+		HLS_FREE(Atrun_sample_array);
+	if(NULL != Vtrun_sample_array)
+		HLS_FREE(Vtrun_sample_array);
+	if(NULL != mdat_array)
+		HLS_FREE(mdat_array);
 	return 0;
+	
+ERR:
+	if(NULL != moof_array)
+		HLS_FREE(moof_array);
+	if(NULL != traf_array)
+		HLS_FREE(traf_array);
+	if(NULL != Atrun_sample_array)
+		HLS_FREE(Atrun_sample_array);
+	if(NULL != Vtrun_sample_array)
+		HLS_FREE(Vtrun_sample_array);
+	if(NULL != mdat_array)
+		HLS_FREE(mdat_array);
+	return -1;
 	
 }
 
@@ -2452,23 +2477,28 @@ void get_samplerate_and_nch(int DecoderSpecificInfo, int* sample_rate, int* n_ch
 
 
 /*
-@mp4：MP4文件的句柄
-@source：文件操作句柄（系列函数）
+功能：解析mp4文件，获取文件的状态信息
+参数：
+	@<mp4>：MP4文件的句柄
+	@<source>：文件操作句柄（系列函数）
+	@<m_stat_ptr>：状态缓存空间头指针
+	@<output_buffer_size>：状态缓存空间大小
 返回： 
 	失败：-1
 	成功：传入的m_stat_ptr==NULL，则返回该指针指向空间应分配内存大小值
-		  传入的m_stat_ptr!=NULL，则返回output_buffer_size的值
+		  传入的m_stat_ptr!=NULL，则返回 传入的 output_buffer_size 的值
 */
 int mp4_media_get_stats(void* context, file_handle_t* mp4, file_source_t* source, media_stats_t* m_stat_ptr, int output_buffer_size) 
 {
-	//创建MP4文件box的信息描述节点链表
-	MP4_BOX* root=mp4_looking(context, mp4,source);
-	int MediaStatsT=0;
-	MP4_BOX** moov_traks=NULL;
 	
+	MP4_BOX* 	root = mp4_looking(context, mp4,source);	//创建MP4文件box的信息描述节点链表
+	int 		MediaStatsT = 0; 	//上层应分配内存空间大小
+	MP4_BOX** 	moov_traks = NULL;
+	
+	MP4_BOX*	moof = NULL;
+	track_t* 	track = NULL;
 
 	/*---区分mp4文件类别(是普通MP4文件还是fmp4文件)------------*/
-	MP4_BOX*moof = NULL;
 	moof = find_box(root, "moof");
 	if(NULL == moof)
 	{
@@ -2478,38 +2508,41 @@ int mp4_media_get_stats(void* context, file_handle_t* mp4, file_source_t* source
 	{
 		set_mp4_file_type(FMP4);
 	}
-	/*--------------------------------------------------------*/
 	
-	//获取MP4源文件中的trak数量（音视频轨道是否都有还是只有一个）
-	int n_tracks=get_count_of_traks(context, mp4, source, root, &moov_traks);
+	/*---获取MP4源文件中的trak数量------------------------------*/
+	int n_tracks = get_count_of_traks(context, mp4, source, root, &moov_traks);
 	DEBUG_LOG("track num = %d\n",n_tracks);
-	track_t* track = NULL;
+	
+	/*---------媒体状态缓冲 buf 内部结构-------------------------------------------------------------------------------------------------------------------------------------
+	track[0]是video track的情况(audio情况同理)：
+	------------------------------------------------------------------------------------------------------------------------------------------------------------
+	| media_stats_t | track_t[0](video) | n_frames *{ pts(float前) + dts(float中) + flags(int后)} | track_t[1](audio) |n_frames *{ pts(float前) + flags(int后)} |
+	----------------|--------video----------------------------------------------------------|----------audio---------------------------------------------------*/
 
-	if (m_stat_ptr==NULL) //如果传入的指针为空（外部不知道应该分配多大的内存），则计算该指针所指向内存理应大小，返回该值
+	if (m_stat_ptr==NULL) //传入空指针空大小（上层不知道应该分配多大的内存），则计算该指针所指向内存理应大小，返回该值
 	{
 		MediaStatsT=sizeof(media_stats_t)+sizeof(track_t)*n_tracks;
 
-		/*
-			fmp4文件和普通的MP4文件frames(samples)的计算方式不一样
+		/*-----------------------------------------------------------------------
+		fmp4文件和普通的MP4文件frames(samples)的计算方式不一样
 			MP4：在trak下的stsz box 里边就能够获取samples总数
 			fmp4:需要将每个moof-->traf-->trun下的 Sample count字段求和才能计算出总数
-		*/
+		-----------------------------------------------------------------------*/
 		int i,j;
 		if(MP4 == get_mp4_file_type())//普通MP4文件
 		{
-			for (i=0; i<n_tracks; i++) 
+			for (i=0; i<n_tracks; i++)
 			{
-				if(handlerType(mp4, source, find_box(moov_traks[i],"hdlr"),"soun"))
-					MediaStatsT+=((sizeof(float)+sizeof(int))*get_nframes(context, mp4, source, moov_traks[i]));//sizeof(float) 代表的是 pts数组
-				if(handlerType(mp4, source, find_box(moov_traks[i],"hdlr"),"vide"))
-					MediaStatsT+=(2*(sizeof(float)+sizeof(int))*get_nframes(context, mp4, source, moov_traks[i]));
+				if(handlerType(mp4, source, find_box(moov_traks[i],"hdlr"),"soun"))//音频无需dts
+					MediaStatsT+=((sizeof(float/*pts*/)+sizeof(int/*flags*/))*get_nframes(context, mp4, source, moov_traks[i]));//sizeof(float) 代表的是 pts数组
+				if(handlerType(mp4, source, find_box(moov_traks[i],"hdlr"),"vide"))//？？？这里的2应该是在括号内部吧(2*sizeof(float)
+					MediaStatsT+=((2*sizeof(float) + sizeof(int))*get_nframes(context, mp4, source, moov_traks[i]));
+					//MediaStatsT+=(2*(sizeof(float)+sizeof(int))*get_nframes(context, mp4, source, moov_traks[i]));
 			}
-			
 					
 		}
 		else if(FMP4 == get_mp4_file_type())//FMP4文件
 		{
-	
 			//1.找出所有moof box节点，构成moof节点数组
 			MP4_BOX** moof_array = NULL;
 			MP4_BOX** traf_array = NULL;
@@ -2523,10 +2556,9 @@ int mp4_media_get_stats(void* context, file_handle_t* mp4, file_source_t* source
 			}
 			*/
 
-			//2.遍历每一个moof节点，找出里边的traf节点，构成traf指针数组
+			//2.遍历每一个moof节点，找出里边的traf节点，统计 video/audio 帧数信息
 			for (i = 0 ; i < moof_num;i++)
 			{
-				
 				int traf_num = find_box_one_level(context,moof_array[i],"traf",&traf_array);
 				DEBUG_LOG("moof_array[%d] --> traf_num = %d\n",i,traf_num);
 				if(traf_num < 0)
@@ -2537,7 +2569,7 @@ int mp4_media_get_stats(void* context, file_handle_t* mp4, file_source_t* source
 					return -1;
 				}
 				
-				//3.循环每一个traf box节点，按照video/audio ,读取每个moof-->traf-->trun下的 Sample count字段求和 = frames
+				//3.循环读取每个moof-->traf-->trun下的 Sample count字段求 video/audio 帧总数
 				for(j = 0 ; j < traf_num ; j++)
 				{
 					//先解析tfhd确定当前traf的trak_id
@@ -2569,36 +2601,39 @@ int mp4_media_get_stats(void* context, file_handle_t* mp4, file_source_t* source
 						{
 							if(frame_info.inited !=1 )
 								frame_info.video_frames += sample_count;
-							MediaStatsT +=(2*(sizeof(float)+sizeof(int))*sample_count);
-							
 						}
 						else if(track_id == get_audio_trak_id())//audio
 						{
 							if(frame_info.inited !=1 )
 								frame_info.audio_frames += sample_count;
-							MediaStatsT+=((sizeof(float)+sizeof(int))*sample_count);
 						}
 						else
 						{
 							ERROR_LOG("unknown track_id !\n");
 							continue;
-						}
-							
+						}	
 					
 					}
 
 				}
-
+				
+				HLS_FREE(traf_array); //该释放操作不能放到外层
+				traf_array = NULL;
 				
 			}
 
+			//求应分配内存空间大小
+			//MediaStatsT += (2*(sizeof(float)+sizeof(int))*frame_info.video_frames);
+			MediaStatsT += ((2*sizeof(float) + sizeof(int))*frame_info.video_frames);
+			MediaStatsT += ((sizeof(float)+sizeof(int))*frame_info.audio_frames);
+			
 			frame_info.inited = 1;
 			
 			DEBUG_LOG("video_frames = %d\n",frame_info.video_frames);
 			DEBUG_LOG("audio_frames = %d\n",frame_info.audio_frames);
 			
-			HLS_FREE(traf_array);
 			HLS_FREE(moof_array);
+			moof_array = NULL;
 		
 		}
 		else
@@ -2606,43 +2641,60 @@ int mp4_media_get_stats(void* context, file_handle_t* mp4, file_source_t* source
 			ERROR_LOG("<error!> unknow file type!\n");
 			return -1;
 		}
-		
+
+		//free
 		HLS_FREE(moov_traks);
+		moov_traks = NULL;
+		i_want_to_break_free(root);
+		root = NULL;
+		
 		return MediaStatsT;
 	}
 	
 	/******如果传入的指针不为空（外部已经分配好内存），则直接进行trak信息填充**********/
 	/*----增加初始化 video/audio 帧（sample）大小信息的逻辑----------------------*/
-		if(init_sample_size_array(context,mp4,source,root) < 0)
-		{
-			ERROR_LOG("init_sample_size_offset_array failed !\n");
-			return -1;
-		}
+	if(init_sample_size_array(context,mp4,source,root) < 0)
+	{
+		ERROR_LOG("init_sample_size_offset_array failed !\n");
+		goto ERR;
+	}
 
-		if(init_sample_offset_array(context,mp4,source,root) < 0)
-		{
-			ERROR_LOG("init_sample_offset_array failed !\n");
-			return -1;
-		}
-		DEBUG_LOG("into position A , n_tracks = %d\n",n_tracks);
+	if(init_sample_offset_array(context,mp4,source,root) < 0)
+	{
+		ERROR_LOG("init_sample_offset_array failed !\n");
+		goto ERR;
+	}
+	DEBUG_LOG("into position A , n_tracks = %d\n",n_tracks);
 	/*---------------------------------------------------------------------------*/
 		
 	m_stat_ptr->n_tracks = n_tracks;
 	for (int i=0; i<n_tracks && i<2; i++) //最大不能超过 2 条轨道
 	{
 		
-		//对trak的起始位置（m_stat_ptr->track[i]）进行初始化
+		/*---------------------------------------------------------------
+		初始化 trak[i] 的起始位置
+		---------------------------------------------------------------*/
 		//--????????????????????????????????????????????????????????????????????????????
-		if (i==0) //video
+		if (i==0) //track[0]
 		{
 			m_stat_ptr->track[i]=(track_t*)((char*)m_stat_ptr + sizeof(media_stats_t));
 		}
-		else //i = 1 audio
+		else //track[1]  //这里soun/video的起始位置不应该是返过来吗？？？？
 		{
+			/*如果track[1]是soun,那前边track[0]不就是video，当然偏移的是video的空间*/
 			if(handlerType(mp4, source, find_box(moov_traks[i-1],"hdlr"),"soun"))
-				m_stat_ptr->track[i]=(track_t*)((char*)m_stat_ptr->track[i-1]+sizeof(track_t)+((sizeof(float)+sizeof(int))*track[i-1].n_frames));
+			{
+				m_stat_ptr->track[i]=(track_t*)((char*)m_stat_ptr->track[i-1]+sizeof(track_t)+((2*sizeof(float) + sizeof(int))*track[i-1].n_frames));
+				//m_stat_ptr->track[i]=(track_t*)((char*)m_stat_ptr->track[i-1]+sizeof(track_t)+((sizeof(float)+sizeof(int))*track[i-1].n_frames));				
+			}
+
+			/*如果track[1]是video,那前边track[0]不就是soun，当然偏移的是soun的空间*/
 			if(handlerType(mp4, source, find_box(moov_traks[i-1],"hdlr"),"vide"))
-				m_stat_ptr->track[i]=(track_t*)((char*)m_stat_ptr->track[i-1]+sizeof(track_t)+((2*sizeof(float)+sizeof(int))*track[i-1].n_frames));
+			{
+				//m_stat_ptr->track[i]=(track_t*)((char*)m_stat_ptr->track[i-1]+sizeof(track_t)+((2*sizeof(float) + sizeof(int))*track[i-1].n_frames));
+				m_stat_ptr->track[i]=(track_t*)((char*)m_stat_ptr->track[i-1]+sizeof(track_t)+((sizeof(float)+sizeof(int))*track[i-1].n_frames));
+			}
+		
 		}
 		//--??????????????????????????????????????????????????????????????????????????????
 		
@@ -2653,11 +2705,11 @@ int mp4_media_get_stats(void* context, file_handle_t* mp4, file_source_t* source
 		
 		if(MP4 == get_mp4_file_type())//普通MP4文件
 		{
-			track->n_frames=get_nframes(context, mp4, source, moov_traks[i]);
+			track->n_frames = get_nframes(context, mp4, source, moov_traks[i]);
 		}	
 		else if(FMP4 == get_mp4_file_type())
 		{
-		DEBUG_LOG("into position C\n");
+			DEBUG_LOG("into position C\n");
 			if(handlerType(mp4, source, find_box(moov_traks[i],"hdlr"),"soun"))
 				track->n_frames = frame_info.audio_frames;
 			else if(handlerType(mp4, source, find_box(moov_traks[i],"hdlr"),"vide"))
@@ -2678,7 +2730,7 @@ int mp4_media_get_stats(void* context, file_handle_t* mp4, file_source_t* source
 		{
 			DEBUG_LOG("into position D\n");	
 			track->pts = (float*)((char*)track+sizeof(track_t));//将pts数组（每个音频帧的pts构成的数组）放到了整个track描述信息的后边
-			track->dts = track->pts;//音频帧的dts = pts
+			track->dts = track->pts;	//音频帧的dts = pts，所以开辟缓存空间时不需要 pts dts都开辟，只需要一份pts
 			track->flags = (int *)((char*)track->pts + sizeof(float) * track->n_frames);//flags初始位置指向 pts 末尾 
 			for(int z=0; z < track->n_frames; z++)	//音频帧每一帧都为关键帧
 				track->flags[z]=1;
@@ -2691,13 +2743,13 @@ int mp4_media_get_stats(void* context, file_handle_t* mp4, file_source_t* source
 				return -1;
 			}
 			get_samplerate_and_nch(get_DecoderSpecificInfo(mp4,source,find_box(moov_traks[i],"stsd")), &track->sample_rate, &track->n_ch);
-			track->sample_size=16;
+			track->sample_size = 16;
+			
 			//PTS Test PRINTF
 			/*
 			for(int vvv=0; vvv<track->n_frames; vvv++)
 				printf("\nSOUND DTS = %f",track->dts[vvv]);
 			*/
-
 
 		}
 		
@@ -2711,8 +2763,10 @@ int mp4_media_get_stats(void* context, file_handle_t* mp4, file_source_t* source
 			DEBUG_LOG("test free 001!\n");
 			get_video_pts(context, mp4, source, moov_traks[i], track->n_frames, track->pts, track->dts);
 			DEBUG_LOG("test free 002!\n");
+			
 			for(int z=0; z<track->n_frames; z++)
 				track->flags[z]=0;
+			
 			int stss_entry_count=0;
 			int* stss=NULL;
 			
@@ -2722,6 +2776,8 @@ int mp4_media_get_stats(void* context, file_handle_t* mp4, file_source_t* source
 				stss=get_stss(context, mp4, source, moov_traks[i], &stss_entry_count);
 				for(int i=0; i<stss_entry_count; i++)
 					track->flags[stss[i]-1]=1;
+				
+				HLS_FREE(stss);
 			}
 			else if( FMP4 == get_mp4_file_type())//不存在stss box（一般是fmp4文件）
 			{
@@ -2739,6 +2795,7 @@ int mp4_media_get_stats(void* context, file_handle_t* mp4, file_source_t* source
 				return -1;
 			}
 
+			//video track 没有如下参数，置零
 			track->n_ch=0;
 			track->sample_rate=0;
 			track->sample_size=0;
@@ -2749,10 +2806,6 @@ int mp4_media_get_stats(void* context, file_handle_t* mp4, file_source_t* source
 			/*for(int vvv=0; vvv<track->n_frames; vvv++)
 				printf("\nVIDEO DTS = %f",track->dts[vvv]);
 			*/
-			if(MP4 == get_mp4_file_type())
-				HLS_FREE(stss);
-			
-			DEBUG_LOG("test free 004!\n");
 			
 		}
 		
@@ -2763,13 +2816,23 @@ int mp4_media_get_stats(void* context, file_handle_t* mp4, file_source_t* source
 	}
 
 	DEBUG_LOG("into position F\n");	
-	HLS_FREE(moov_traks);
-	i_want_to_break_free(root);
+	if(NULL != moov_traks)
+		HLS_FREE(moov_traks);
+	if(NULL != root)
+		i_want_to_break_free(root);
+	
 	return output_buffer_size;
+
+ERR:
+	if(NULL != moov_traks)
+		HLS_FREE(moov_traks);
+	if(NULL != root)
+		i_want_to_break_free(root);
+	return -1;
 }
 
 /*
-功能：（只处理一个帧）？？？？？？？？？？？？？？？？？？？？？？？？？？？？
+功能：添加H264帧的同步码
 参数：
 	@ptr：当前帧的开始位置
 	@NALlensize：avcC box 的NALUnitLengthSize字段
@@ -2785,9 +2848,9 @@ int  convert_to_annexb(void* context, char* ptr, int NALlensize, int* frame_size
 {
 
 	DEBUG_LOG("into convert_to_annexb!\n");
-	char annexb[4]={0,0,0,1};
+	char annexb[4]={0,0,0,1};  //h264帧的起始头
 	int nal_size=0;
-	//申请 “当前帧大小 + 保留大小” 的内存空间
+	//申请 “当前帧大小 + 保留大小” 的内存空间，用于构建的缓存空间。
 	char* temp_buffer=(char*) HLS_MALLOC (context, sizeof(char)*(frame_size[index] + RESERVED_SPACE));
 	if (temp_buffer==NULL) 
 	{
@@ -2801,7 +2864,7 @@ int  convert_to_annexb(void* context, char* ptr, int NALlensize, int* frame_size
 	
 	for(i = 0 ; i < frame_size[index]; ) //frame_size[index]:当前帧的大小
 	{
-		//解析NALU的大小和类型
+		//解析NALU的大小和类型,mp4文件帧数据帧头没有同步码，没有SPS、PPS等NALU，取而代之的是4字节的帧数据长度
 		memcpy((char*)&nal_size+(4-NALlensize), ptr  + i, NALlensize);
 		nal_size = t_ntohl(nal_size);
 		memcpy(&nal_type, ptr + i + NALlensize, 1);
@@ -2814,7 +2877,7 @@ int  convert_to_annexb(void* context, char* ptr, int NALlensize, int* frame_size
 		}
 		else 		//非关键帧，直接拷贝 头部 + 数据，无SPS PPS部分
 		{
-			memcpy(temp_buffer + j , annexb , 4);  //H264帧公共头
+			memcpy(temp_buffer + j , annexb , 4);  //H264帧起始头
 			memcpy(temp_buffer + j + 4 , ptr + i + NALlensize , nal_size);
 			i += nal_size + NALlensize;
 			j += 4 + nal_size;
@@ -2864,18 +2927,24 @@ int mp4_media_get_data(void* context, file_handle_t* mp4, file_source_t* source,
 	int lenght = get_segment_length(); // recommended_lenght for test （我们设置的TS文件切片时长）
 
 	/*----output_buffer == NULL-------计算  应该分配的内存大小--------------------------------------------------------------------------------------*/
-	/*=============总 文件缓冲buf组成结构========================================================================
+	/*=============媒体数据缓冲 buf 组成结构========================================================================
 		
-		Audio帧：7字节adts + 数据帧
-
-		Video帧：帧数据 + 160字节的RESERVED_SPACE
-				 额外保存一份 AUD + SPS + PPS
 		
-		n_frames：代表的是整个文件 video/audio 的帧数。
+		n_frames：代表的是当前TS文件 video/audio 的帧数。
 		-----总头------|---------video部分--------------------------------------------------------|------audio部分--------
 		| media_data_t | track_data_t(video) | size * n_frames | offset * n_frames | frames data  | ...same as video ... |
 		------------------------------------------------------------------------------------------------------------------
-	============================================================================================================*/
+
+		其中：frames data 部分的帧数据在填充时，直接按照TS文件帧数据格式填充
+			video部分：
+			------------------------------------------------------------------------------------------------------------------
+			| AUD(6 bytes) | SPS + PPS | IDR frame data | AUD | P frame data | AUD | P frame data ......  | 160 bytes reserved|
+			------------------------------------------------------------------------------------------------------------------
+			audio部分：
+			-------------------------------------------------------------------------------------------
+			| adts header(7bytes) | frame data | adts header(7bytes) | frame data |      ......		   | 
+			-------------------------------------------------------------------------------------------
+	=================================================================================================================*/
 	if(output_buffer==NULL) //统计
 	{
 		MediaDataT = sizeof(media_data_t)+sizeof(track_data_t)*n_tracks;
@@ -2905,6 +2974,7 @@ int mp4_media_get_data(void* context, file_handle_t* mp4, file_source_t* source,
 							ERROR_LOG("malloc faield !\n");
 							return -1;
 						}
+						memset(stsz_data,0,sample_count * sizeof(int));
 						memcpy(stsz_data,sample_size.A_size_array,sample_count * sizeof(int));
 						DEBUG_LOG("soun stsz_data[0] = %d stsz_data[1] = %d\n",stsz_data[0],stsz_data[1]);
 
@@ -2921,6 +2991,7 @@ int mp4_media_get_data(void* context, file_handle_t* mp4, file_source_t* source,
 							ERROR_LOG("malloc faield !\n");
 							return -1;
 						}
+						memset(stsz_data,0,sample_count * sizeof(int));
 						memcpy(stsz_data,sample_size.V_size_array,sample_count * sizeof(int));
 						
 						DEBUG_LOG("vide stsz_data[0] = %d stsz_data[1] = %d\n",stsz_data[0],stsz_data[1]);
@@ -2945,8 +3016,8 @@ int mp4_media_get_data(void* context, file_handle_t* mp4, file_source_t* source,
 			int j = 0;
 			if(handlerType(mp4, source, find_box(moov_traks[i],"hdlr"),"soun")) 
 			{
-				DEBUG_LOG("soun : tmp_sf(%d)---tmp_ef(%d)  total audio frame(%d)\n",tmp_sf,tmp_ef,sample_offset.A_sample_num);
-				for(j=tmp_sf; j<tmp_ef; j++)
+				DEBUG_LOG("soun : tmp_sf(%d)----->tmp_ef(%d)  total audio frame(%d)\n",tmp_sf,tmp_ef,sample_offset.A_sample_num);
+				for(j=tmp_sf ; j<tmp_ef; j++)
 				{
 					tmp_buffer_size += stsz_data[j]+7; // 7 - adts header size
 					DEBUG_LOG("stsz_data[%d] = %d  tmp_buffer_size(%d) \n",j,stsz_data[j],tmp_buffer_size);
@@ -2959,7 +3030,7 @@ int mp4_media_get_data(void* context, file_handle_t* mp4, file_source_t* source,
 				DEBUG_LOG("vide : tmp_sf(%d)---tmp_ef(%d)   total video frame(%d)\n",tmp_sf,tmp_ef,sample_offset.V_sample_num);
 				for(j = tmp_sf ; j < tmp_ef ; j++)
 				{
-					tmp_buffer_size += stsz_data[j]; 
+					tmp_buffer_size += stsz_data[j]; //不加AUD头部分？
 					DEBUG_LOG("stsz_data[%d] = %d  tmp_buffer_size(%d) \n",j,stsz_data[j],tmp_buffer_size);
 
 				}
@@ -2970,6 +3041,7 @@ int mp4_media_get_data(void* context, file_handle_t* mp4, file_source_t* source,
 				DEBUG_LOG("avc_decinfo_size(%d) temp_nframes(%d)\n",avc_decinfo_size,temp_nframes);
 				tmp_buffer_size += avc_decinfo_size + RESERVED_SPACE * temp_nframes;
 				HLS_FREE(temp_AVCDecInfo);
+				temp_AVCDecInfo = NULL;
 			}
 			//size:当前TS文件对应的video/audio帧的大小信息
 			//offset:当前TS文件对应的video/audio帧的偏移信息
@@ -2977,41 +3049,50 @@ int mp4_media_get_data(void* context, file_handle_t* mp4, file_source_t* source,
 			MediaDataT += (sizeof(int/*int* size*/) + sizeof(int/*int* offset*/))*temp_nframes + sizeof(char/*char* buffer*/)*tmp_buffer_size;
 
 			HLS_FREE(stsz_data);
+			stsz_data = NULL;
 
 		}
-		HLS_FREE(moov_traks);
 
+
+	//free
+		HLS_FREE(moov_traks);
+		moov_traks = NULL;
+		i_want_to_break_free(root);
+		root = NULL;
 		DEBUG_LOG("into position I1 MediaDataT = %d\n",MediaDataT);	
 		
 		return MediaDataT;
 	}
 	
 	/*---output_buffer不为空，正常业务逻辑部分---------------------------------------------------------------------------------------------------*/
-		
+
+	int* stsz_data = NULL; //sample(帧)的大小信息数组指针
+	int* mp4_sample_offset = NULL; //描述在文件中 video 或者 audio trak 下的每一个 sample（帧）的偏移量（数组指针）
+
 	media_data_t* data = NULL;
 	track_data_t* cur_track_data = NULL;
 	output_buffer->n_tracks = n_tracks;
-
+	
 	
 	for(int i=0; i<n_tracks; i++) 
 	{
-		if (i==0)  //video
-		{	//将track_data[0]指向的trak信息数据media_data_t结构后
-			output_buffer->track_data[i] = (track_data_t*)((char*)output_buffer+sizeof(media_data_t));
+		/*----初始化 track_data[i] 的地址--------------------------------------------------------------------*/
+
+		if (i==0)  //track_data[0]
+		{	
+			output_buffer->track_data[i] = (track_data_t*)((char*)output_buffer + sizeof(media_data_t));
 		}
-		else 	//audio
+		else 	//track_data[1]
 		{
 			//计算track_data[1]指向的起始位置
 			
-			output_buffer->track_data[i] = (track_data_t*)((char*)output_buffer->track_data[i-1] + sizeof(track_data_t) + sizeof(char) * output_buffer->track_data[i-1]->buffer_size + (sizeof(int) * output_buffer->track_data[i-1]->n_frames) * 2);//*2是因为每个帧都有 size 和 offset都是四字节，两倍关系
+			output_buffer->track_data[i] = (track_data_t*)((char*)output_buffer->track_data[i-1] + sizeof(track_data_t) + (sizeof(int) * output_buffer->track_data[i-1]->n_frames) * 2) + sizeof(char) * output_buffer->track_data[i-1]->buffer_size;//*2是因为每个帧都有 size 和 offset都是四字节，两倍关系
 
 			unsigned int offset  = (char*)output_buffer->track_data[i] - (char*)output_buffer;
 			if(offset >= output_buffer_size)
 			{
 				ERROR_LOG("buffer overflow!\n");
-				i_want_to_break_free(root);
-				HLS_FREE(moov_traks);
-				return -1;
+				goto ERR;
 			}
 			DEBUG_LOG("audio output_buffer->track_data[i] = %p  offset(%d)\n",&output_buffer->track_data[i]->first_frame,offset);
 		}
@@ -3025,10 +3106,9 @@ int mp4_media_get_data(void* context, file_handle_t* mp4, file_source_t* source,
 		cur_track_data->n_frames = get_frames_in_piece(stats, piece, i, &cur_track_data->first_frame, &tmp_ef, lenght);
 		DEBUG_LOG("2944 out get_frames_in_piece...\n");
 		
-#if 1		
-		int* stsz_data = NULL; //sample(帧)的大小信息数组指针
-
-			print_V_size_array(2);
+#if 1	
+		/*-----生成当前 track 的 samples（帧）大小 信息------------------------------------------------------*/
+		print_V_size_array(2);
 			
 		if(MP4 == get_mp4_file_type())
 		{
@@ -3047,11 +3127,11 @@ int mp4_media_get_data(void* context, file_handle_t* mp4, file_source_t* source,
 					if(NULL == stsz_data)
 					{
 						ERROR_LOG("malloc failed !\n");
-						HLS_FREE(moov_traks);
-						i_want_to_break_free(root);
-						return -1;
+						goto ERR;
 					}
+					memset(stsz_data,0,tmp_sample_count*sizeof(int));
 					memcpy(stsz_data,sample_size.A_size_array,tmp_sample_count*sizeof(int));
+					
 					
 					DEBUG_LOG("frame_info.audio_frames = %d\n",frame_info.audio_frames);
 					DEBUG_LOG("audio : stsz_data[0]= %d stsz_data[1]= %d stsz_data[2]= %d\n",stsz_data[0],stsz_data[1],stsz_data[2]);
@@ -3064,10 +3144,9 @@ int mp4_media_get_data(void* context, file_handle_t* mp4, file_source_t* source,
 					if(NULL == stsz_data)
 					{
 						ERROR_LOG("malloc failed !\n");
-						HLS_FREE(moov_traks);
-						i_want_to_break_free(root);
-						return -1;
+						goto ERR;
 					}
+					memset(stsz_data,0,tmp_sample_count*sizeof(int));
 					memcpy(stsz_data,sample_size.V_size_array,tmp_sample_count*sizeof(int));
 					
 					DEBUG_LOG("frame_info.video_frames = %d\n",frame_info.video_frames);
@@ -3080,18 +3159,18 @@ int mp4_media_get_data(void* context, file_handle_t* mp4, file_source_t* source,
 			else
 			{
 				ERROR_LOG("sample_size not init !\n");
-				return -1;
+				goto ERR;
 			}
 			
 		}
 		else
 		{
 			ERROR_LOG("unknown file type !\n");
-			return -1;
+			goto ERR;
 		}
 		
+		/*----初始化TS文件当前 track 下 (帧的) size、offset、buffer_size等信息-------------------------------*/
 		print_V_size_array(3);
-
 		cur_track_data->buffer_size=0;
 		int k=0;
 		cur_track_data->size = (int *)((char*)cur_track_data + sizeof(track_data_t));
@@ -3118,22 +3197,22 @@ int mp4_media_get_data(void* context, file_handle_t* mp4, file_source_t* source,
 			{
 				if(k!=0)
 				{
-					cur_track_data->size[k]	=stsz_data[j];
+					cur_track_data->size[k]	= stsz_data[j];
 				}
-				else //（k == 0）第一帧，需要添加 SPS PPS 的大小
+				else //（k == 0）TS文件第一帧 video 帧，需要添加 SPS PPS 的大小
 				{
-					char* temp_AVCDecInfo=NULL;
-					int avc_decinfo_size=0;
-					temp_AVCDecInfo=get_AVCDecoderSpecificInfo(context, mp4, source, find_box(moov_traks[i],"stsd"), &avc_decinfo_size, NULL);
+					char* temp_AVCDecInfo = NULL;
+					int avc_decinfo_size = 0;
+					temp_AVCDecInfo = get_AVCDecoderSpecificInfo(context, mp4, source, find_box(moov_traks[i],"stsd"), &avc_decinfo_size, NULL);
 					if(NULL == temp_AVCDecInfo)
 					{
 						ERROR_LOG("get_AVCDecoderSpecificInfo error!\n");
-						return -1;
+						goto ERR;
 					}
-					HLS_FREE(temp_AVCDecInfo);
-				
-
 					cur_track_data->size[k]	= stsz_data[j] + avc_decinfo_size;//第一帧视频帧要加上 SPS + PPS的大小					
+
+					HLS_FREE(temp_AVCDecInfo);
+					temp_AVCDecInfo = NULL;
 				}
 				
 				DEBUG_LOG("video track_data->size[%d] = %d\n",k,cur_track_data->size[k]);
@@ -3142,26 +3221,27 @@ int mp4_media_get_data(void* context, file_handle_t* mp4, file_source_t* source,
 				cur_track_data->buffer_size += cur_track_data->size[k];
 				++k;
 			}
-			cur_track_data->buffer_size += RESERVED_SPACE;
+		
+			cur_track_data->buffer_size += RESERVED_SPACE; //每个TS文件多 160 字节的保留空间，干嘛？？
+			
 		}
 		
 		cur_track_data->frames_written=0;
 		cur_track_data->data_start_offset=0;
 		cur_track_data->cc=0;
 
+		/*----初始化mp4文件当前 track 下 (帧的) offset 信息(相对于mp4文件开头)-------------------------------*/
 		
-		MP4_BOX* find_stsd=(find_box(moov_traks[i], "stsd"));
-		int* mp4_sample_offset; //描述在文件中 video 或者 audio trak 下的每一个 sample（帧）的偏移量（数组指针）
+		MP4_BOX* find_stsd = find_box(moov_traks[i], "stsd");
 		mp4_sample_offset = (int*) HLS_MALLOC (context, sizeof(int)*tmp_sample_count);
-
 		if (mp4_sample_offset == NULL) 
 		{
 			ERROR_LOG("Couldn't allocate memory for mp4_sample_offset malloc_size(%d)\n",tmp_sample_count);
-			return -1;
+			goto ERR;
 		}
+		memset(mp4_sample_offset,0,sizeof(int)*tmp_sample_count);
 		DEBUG_LOG("into position I6 \n");
 		
-		//===================该部分区分普通MP4文件和fmp4文件=========================================
 		if(MP4 == get_mp4_file_type())
 		{
 			MP4_BOX* find_stsc=(find_box(moov_traks[i], "stsc"));
@@ -3224,7 +3304,7 @@ int mp4_media_get_data(void* context, file_handle_t* mp4, file_source_t* source,
 				if(sample_offset.A_sample_num != tmp_sample_count)
 				{
 					ERROR_LOG("sample_offset.A_sample_num(%d) != tmp_sample_count(%d)\n",sample_offset.A_sample_num,tmp_sample_count);
-					return -1;
+					goto ERR;
 				}
 				//mp4_sample_offset = sample_offset.A_offset_array;
 				memcpy(mp4_sample_offset , sample_offset.A_offset_array , sizeof(int)*tmp_sample_count);
@@ -3239,7 +3319,7 @@ int mp4_media_get_data(void* context, file_handle_t* mp4, file_source_t* source,
 				if(sample_offset.V_sample_num != tmp_sample_count)
 				{
 					ERROR_LOG("sample_offset.V_sample_num(%d) != tmp_sample_count(%d)\n",sample_offset.V_sample_num,tmp_sample_count);
-					return -1;
+					goto ERR;
 				}
 				//mp4_sample_offset = sample_offset.V_offset_array;
 				memcpy(mp4_sample_offset , sample_offset.V_offset_array , sizeof(int)*tmp_sample_count);
@@ -3252,10 +3332,9 @@ int mp4_media_get_data(void* context, file_handle_t* mp4, file_source_t* source,
 		else
 		{
 			ERROR_LOG("unknown file type!\n");
-			return -1;
+			goto ERR;
 		}
 		
-		/*-----------------------------------------------------------------------------------------------------------------------------*/
 
 		/*
 	 	for (int kkk=0; kkk<30; kkk++) 
@@ -3266,10 +3345,10 @@ int mp4_media_get_data(void* context, file_handle_t* mp4, file_source_t* source,
 		fflush(stdout);
 		*/
 		
-		/***START** 获取当前TS分片对应音频帧的帧数据********************************************************************************************/
+		/*---- 获取当前TS分片对应 audio frames 的帧数据--------------------------------------------------------------*/
 		if(handlerType(mp4, source, find_box(moov_traks[i],"hdlr"),"soun")) //如果当前trak（moov_traks[i]）是 audio trak
 		{
-		DEBUG_LOG("into position I10 \n");
+			DEBUG_LOG("into position I10 \n");
 			/*---------解析esds box，获取音频解码参数-------------------------------------------------------------------------*/
 			int DecSpecInfo=0;
 			long long BaseMask=0xFFF10200001FFC;
@@ -3287,7 +3366,7 @@ int mp4_media_get_data(void* context, file_handle_t* mp4, file_source_t* source,
 			channel_count = channel_count << 30;
 			BaseMask = BaseMask | objecttype | frequency_index | channel_count;
 
-			/*-------遍历当前TS分片需要的每一个帧,将帧数据放到缓存中（并加上7个字节的 adts 头数据）----------------------------*/
+			/*---遍历TS分片需要的每一个帧,将 audio 帧数据放到缓存中（并加上7个字节的 adts 头）----------------------*/
 			int z = 0;//记录当前TS分片对应帧的下标（区间值）
 			for (z = cur_track_data->first_frame ;  z < cur_track_data->first_frame + cur_track_data->n_frames; z++) 
 			{
@@ -3302,19 +3381,19 @@ int mp4_media_get_data(void* context, file_handle_t* mp4, file_source_t* source,
 				}
 				source->read(	mp4, 
 								(char*)cur_track_data->buffer + cur_track_data->offset[z - cur_track_data->first_frame] + 7, //7----adts头
-								cur_track_data->size[z - cur_track_data->first_frame] - 7, //前边还要多读7字节的 adts 头数据 
+								cur_track_data->size[z - cur_track_data->first_frame] - 7, //前边考虑了7字节的 adts 头 
 								mp4_sample_offset[z], 
 								0
 							);
 			}
 
 		}
-		/***END******************************************************************************************************************************/
+		
 
-		/***START** 获取当前TS分片对应视频帧的帧数据********************************************************************************************/
-		if(handlerType(mp4, source, find_box(moov_traks[i],"hdlr"),"vide")) //如果当前trak（moov_traks[i]）是 video trak
+		/*----获取当前TS分片对应 video frames 的帧数据-------------------------------------------------------*/
+		if(handlerType(mp4, source, find_box(moov_traks[i],"hdlr"),"vide")) 
 		{
-		DEBUG_LOG("into position I11 \n");
+			DEBUG_LOG("into position I11 \n");
 			char* AVCDecInfo=NULL;
 			int avc_decinfo_size=0; 		//SPS + PPS 数据部分的大小
 			int NALlengthsize=0; 			//avcC box 的NALUnitLengthSize字段
@@ -3323,39 +3402,39 @@ int mp4_media_get_data(void* context, file_handle_t* mp4, file_source_t* source,
 			if(NULL == AVCDecInfo)
 			{
 				ERROR_LOG("get_AVCDecoderSpecificInfo error !\n");
-				return -1;
+				goto ERR;
 			}
 			
 //			if(NALlengthsize==4) {
 				int z = 0; //记录当前TS分片对应帧的下标（区间值）
 				for (z = cur_track_data->first_frame; z < cur_track_data->first_frame + cur_track_data->n_frames ; z++) 
 				{
-					if (z == cur_track_data->first_frame) //第一个视频帧（当前的TS文件来说），特殊处理
+					/*---第一个视频帧（当前的TS文件来说），特殊处理--------*/
+					if (z == cur_track_data->first_frame) 
 					{
 						DEBUG_LOG("into position I11--A \n");
 						int nal_size = 0;
 						int c = 0;
 						int m = 0;
-						for(c = 0 ; c < 6; c++)//放 AUD 头（6字节）
+						/*1.---放 AUD 头（6字节）---*/
+						for(c = 0 ; c < 6; c++)
 							cur_track_data->buffer[c] = AUD[c];
-						for(m = 0 ; m < avc_decinfo_size ; m++)//放 SPS + PPS 数据
-							cur_track_data->buffer[m+6] = AVCDecInfo[m]; //6 - AUD size;
-							
-						//直接从文件将帧的数据部分读到 buf 中
-						//读帧的数据部分（跳过 AUD + SPS + PPS 部分，这里之前填充的size字段时就没有算进去AUD，所以只 - avc_decinfo_size）
-						DEBUG_LOG("track_data->size[ z -track_data->first_frame] = %d mp4_sample_offset[%d] = %d\n",
-									cur_track_data->size[ z -cur_track_data->first_frame],z,mp4_sample_offset[z]);
 						
+						/*2.---放 SPS + PPS 数据---*/
+						for(m = 0 ; m < avc_decinfo_size ; m++)
+							cur_track_data->buffer[m+6] = AVCDecInfo[m]; //6 --- AUD size;
+							
+						/*3.---从文件将帧的数据部分读到 buf 中---*/
+						//注意需要跳过 AUD + SPS + PPS 的长度，这里之前填充的size字段时就没有算进去AUD，所以只 - avc_decinfo_size
 						cur_track_data->size[z - cur_track_data->first_frame] -= avc_decinfo_size; 
 						source->read(	mp4,
-										(char*)cur_track_data->buffer + avc_decinfo_size + 6, /*一次读一帧，保留SPS PPS空间 + 6字节的AUD头空间*/
+										(char*)cur_track_data->buffer + avc_decinfo_size + 6, /* 跳过6字节的AUD头空间*/
 										cur_track_data->size[ z -cur_track_data->first_frame],
 										mp4_sample_offset[z],
 										0
 									);
-						//convert_to_annexb((char*)track_data->buffer+avc_decinfo_size, track_data->size[z-track_data->first_frame]-avc_decinfo_size, NALlengthsize);
-						//鬼知道在干什么
 						
+						/*4.---添加帧头同步码---*/
 						int ret = convert_to_annexb(	context, 
 														(char*)cur_track_data->buffer + avc_decinfo_size + 6, /*传入的是当前所读帧的数据部分*/
 														NALlengthsize, 
@@ -3366,29 +3445,31 @@ int mp4_media_get_data(void* context, file_handle_t* mp4, file_source_t* source,
 						if(ret < 0)
 						{
 							ERROR_LOG("convert_to_annexb error !\n");
-							return -1;
+							HLS_FREE(AVCDecInfo);
+							goto ERR;
 						}
 						
-						cur_track_data->size[z-cur_track_data->first_frame]+=avc_decinfo_size;
+						cur_track_data->size[z-cur_track_data->first_frame]+=avc_decinfo_size; 
 						cur_track_data->offset[z-cur_track_data->first_frame+1]=cur_track_data->size[z-cur_track_data->first_frame];
 						DEBUG_LOG("into position I11--A--out \n");
 
 					}
-					else 
+					else  /*----不是第一个 video 帧----------------------*/
 					{
 						DEBUG_LOG("into position I11--B \n");
 						int c = 0;
+						/*1.---放 AUD 头（6字节）---*/
 						for(c = 0 ; c < 6 ; c++)
 							cur_track_data->buffer[cur_track_data->offset[ z - cur_track_data->first_frame] + c] = AUD[c];
 						
-						
+						/*2.---从文件将帧的数据部分读到 buf 中---*/
 						source->read(	mp4,
 										(char*)cur_track_data->buffer + cur_track_data->offset[ z - cur_track_data->first_frame] + 6, 
 										cur_track_data->size[z - cur_track_data->first_frame] , 
 										mp4_sample_offset[z] ,
 										0 
 									);
-						
+						/*3.---添加帧头同步码---*/
 						int ret = convert_to_annexb(	context, 
 														(char*)cur_track_data->buffer + cur_track_data->offset[ z - cur_track_data->first_frame] + 6, 
 														NALlengthsize, 
@@ -3399,11 +3480,12 @@ int mp4_media_get_data(void* context, file_handle_t* mp4, file_source_t* source,
 						if(ret < 0)
 						{
 							ERROR_LOG("convert_to_annexb error !\n");
-							return -1;
+							HLS_FREE(AVCDecInfo);
+							goto ERR;
 						}
 						
 						
-						if(z - cur_track_data->first_frame + 1 < cur_track_data->n_frames)//帧还没有读完（当前TS分片所对应的帧），计算后一个帧的偏移量 offset
+						if(z - cur_track_data->first_frame + 1 < cur_track_data->n_frames)//计算后一个帧的偏移量 offset
 							cur_track_data->offset[z - cur_track_data->first_frame + 1] = cur_track_data->offset[ z - cur_track_data->first_frame] + cur_track_data->size[ z - cur_track_data->first_frame];
 						DEBUG_LOG("into position I11--B--out \n");
 					}
@@ -3424,11 +3506,24 @@ int mp4_media_get_data(void* context, file_handle_t* mp4, file_source_t* source,
 
 	}
 
-	
-	HLS_FREE(moov_traks);
-	i_want_to_break_free(root);
+	if(NULL != moov_traks)
+		HLS_FREE(moov_traks);
+	if(NULL != root)
+		i_want_to_break_free(root);
 	DEBUG_LOG("out of mp4_media_get_data !\n");
 	return output_buffer_size;
+	
+ERR:
+	if(NULL != stsz_data)
+		HLS_FREE(stsz_data);
+	if(NULL != mp4_sample_offset)
+		HLS_FREE(mp4_sample_offset);
+	if(NULL != moov_traks)
+		HLS_FREE(moov_traks);
+	if(NULL != root)
+		i_want_to_break_free(root);
+	return -1;
+	
 }
 
 
