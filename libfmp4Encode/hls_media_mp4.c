@@ -41,8 +41,8 @@ extern char* 	buf_end;
 #else
 #define HLS_MALLOC(X,Y) malloc(Y)
 #define HLS_FREE(X) free(X)
-/*
-#define HLS_FREE(X) do{\
+
+/*#define HLS_FREE(X) do{\
 						if( (char*)X >= (char*)buf_start && (char*)X <= (char*)buf_end)\
 						{\
 							ERROR_LOG("funck free!!\n");\
@@ -55,6 +55,7 @@ extern char* 	buf_end;
 					}while(0)
 
 */
+
 #endif
 
 
@@ -2914,6 +2915,16 @@ void print_V_size_array(int NO)
 		  传入output_buffer= NULL，则返回应分配的内存空间大小
 		  传入output_buffer！= NULL，则返回。。。
 */
+void DEBUG_FUNC( media_data_t* output_buffer,int output_buffer_size)
+{
+	char* debug_write = (char*)((char*)output_buffer + output_buffer_size - 1);
+	DEBUG_LOG("write pos = %x\n",debug_write);	
+	*debug_write = 1;
+
+}
+
+
+#define  ALIGNMENT_BYTES  4  //用于字节对齐而多分配的字节数(以防对齐后buf大小不够) 
 int mp4_media_get_data(void* context, file_handle_t* mp4, file_source_t* source, media_stats_t* stats, int piece, media_data_t* output_buffer, int output_buffer_size) 
 {
 
@@ -3047,7 +3058,8 @@ int mp4_media_get_data(void* context, file_handle_t* mp4, file_source_t* source,
 			//offset:当前TS文件对应的video/audio帧的偏移信息
 			DEBUG_LOG("MediaDataT(%d) temp_nframes(%d) tmp_buffer_size(%d)\n",MediaDataT,temp_nframes,tmp_buffer_size);
 			MediaDataT += (sizeof(int/*int* size*/) + sizeof(int/*int* offset*/))*temp_nframes + sizeof(char/*char* buffer*/)*tmp_buffer_size;
-
+			MediaDataT += ALIGNMENT_BYTES;
+			
 			HLS_FREE(stsz_data);
 			stsz_data = NULL;
 
@@ -3072,7 +3084,7 @@ int mp4_media_get_data(void* context, file_handle_t* mp4, file_source_t* source,
 	media_data_t* data = NULL;
 	track_data_t* cur_track_data = NULL;
 	output_buffer->n_tracks = n_tracks;
-	
+
 	
 	for(int i=0; i<n_tracks; i++) 
 	{
@@ -3081,27 +3093,46 @@ int mp4_media_get_data(void* context, file_handle_t* mp4, file_source_t* source,
 		if (i==0)  //track_data[0]
 		{	
 			output_buffer->track_data[i] = (track_data_t*)((char*)output_buffer + sizeof(media_data_t));
+			
+			DEBUG_LOG("---output_buffer = %x  output_buffer->track_data[0] = %x\n",output_buffer,output_buffer->track_data[0]);
+			#if 1
+			DEBUG_LOG("into debug_write...write pos\n");
+			DEBUG_FUNC(output_buffer, output_buffer_size);
+			DEBUG_LOG("back of debug_write...\n");
+			#endif
 		}
 		else 	//track_data[1]
 		{
-			//计算track_data[1]指向的起始位置
+			//计算track_data[1]指向的起始位置，在字节对齐中为了不回踩到前边的数据，向后偏移4字节再对齐。
+			output_buffer->track_data[i] = (track_data_t*)((char*)output_buffer->track_data[i-1] + sizeof(track_data_t) + (sizeof(int) * output_buffer->track_data[i-1]->n_frames) * 2 + sizeof(char) * output_buffer->track_data[i-1]->buffer_size + 4);//*2是因为每个帧都有 size 和 offset都是四字节，两倍关系，+4 
+			output_buffer->track_data[i] = (track_data_t*)(((unsigned int)output_buffer->track_data[i] + ALIGNMENT_BYTES)&(~0x3L));  //调整地址，进行4字节对齐
 			
-			output_buffer->track_data[i] = (track_data_t*)((char*)output_buffer->track_data[i-1] + sizeof(track_data_t) + (sizeof(int) * output_buffer->track_data[i-1]->n_frames) * 2) + sizeof(char) * output_buffer->track_data[i-1]->buffer_size;//*2是因为每个帧都有 size 和 offset都是四字节，两倍关系
-
+			DEBUG_LOG("---i = %d output_buffer->track_data[0] = %x track_data[0]->n_frames = %d track_data[0]->buffer_size = %d\n",
+					i,output_buffer->track_data[i-1],output_buffer->track_data[i-1]->n_frames,output_buffer->track_data[i-1]->buffer_size);
+			
 			unsigned int offset  = (char*)output_buffer->track_data[i] - (char*)output_buffer;
 			if(offset >= output_buffer_size)
 			{
-				ERROR_LOG("buffer overflow!\n");
+				ERROR_LOG("buffer overflow! offset(%d) output_buffer_size(%d)\n",offset,output_buffer_size);
 				goto ERR;
 			}
-			DEBUG_LOG("audio output_buffer->track_data[i] = %p  offset(%d)\n",&output_buffer->track_data[i]->first_frame,offset);
+			DEBUG_LOG("audio output_buffer->track_data[%d] = %p  offset(%d)\n",i,output_buffer->track_data[i],offset);
 		}
 		
 		cur_track_data = output_buffer->track_data[i];
+		
+		
 		int tmp_ef=0; //当前TS分片对应帧区间的结束位置（下标）
 		int tmp_sample_count=0; //stsz 的样本个数（Sample count字段）
+		
+		#if 1
+		DEBUG_LOG("into debug_write...write pos\n");
+		DEBUG_FUNC(output_buffer, output_buffer_size);
+		DEBUG_LOG("back of debug_write...\n");
+		#endif
+
 		DEBUG_LOG("2944 into get_frames_in_piece... track = %d &track_data->first_frame = %p\n",i,&cur_track_data->first_frame);
-		cur_track_data->first_frame = 0; 
+		//cur_track_data->first_frame = 0; 
 		DEBUG_LOG("back---- track_data->first_frame = 0\n");
 		cur_track_data->n_frames = get_frames_in_piece(stats, piece, i, &cur_track_data->first_frame, &tmp_ef, lenght);
 		DEBUG_LOG("2944 out get_frames_in_piece...\n");
@@ -3153,6 +3184,13 @@ int mp4_media_get_data(void* context, file_handle_t* mp4, file_source_t* source,
 					DEBUG_LOG("sample_size.V_size_array[0] = %d sample_size.V_size_array[1] = %d sample_size.V_size_array[2] = %d\n",
 								sample_size.V_size_array[0],sample_size.V_size_array[1],sample_size.V_size_array[2]);
 					DEBUG_LOG("video : stsz_data[0]= %d stsz_data[1]= %d stsz_data[2]= %d\n",stsz_data[0],stsz_data[1],stsz_data[2]);
+
+				#if 1
+					DEBUG_LOG("into debug_write...write pos\n");
+					DEBUG_FUNC(output_buffer, output_buffer_size);
+					DEBUG_LOG("back of debug_write...\n");
+				#endif
+
 				}
 					
 			}
@@ -3220,9 +3258,20 @@ int mp4_media_get_data(void* context, file_handle_t* mp4, file_source_t* source,
 				cur_track_data->offset[k] = cur_track_data->buffer_size;
 				cur_track_data->buffer_size += cur_track_data->size[k];
 				++k;
+
+				
 			}
 		
 			cur_track_data->buffer_size += RESERVED_SPACE; //每个TS文件多 160 字节的保留空间，干嘛？？
+			DEBUG_LOG("---video track  cur_track_data->buffer_size(%d)\n",cur_track_data->buffer_size);
+
+			#if 1
+			DEBUG_LOG("into debug_write...write pos\n");
+			DEBUG_FUNC(output_buffer, output_buffer_size);
+			DEBUG_LOG("back of debug_write...\n");
+			#endif
+
+			
 			
 		}
 		
@@ -3325,6 +3374,12 @@ int mp4_media_get_data(void* context, file_handle_t* mp4, file_source_t* source,
 				memcpy(mp4_sample_offset , sample_offset.V_offset_array , sizeof(int)*tmp_sample_count);
 				DEBUG_LOG("mp4_sample_offset[0] = %d mp4_sample_offset[1] = %d mp4_sample_offset[2] = %d\n",
 						mp4_sample_offset[0],mp4_sample_offset[1],mp4_sample_offset[2]);
+
+				#if 1
+						DEBUG_LOG("into debug_write...write pos\n");
+						DEBUG_FUNC(output_buffer, output_buffer_size);
+						DEBUG_LOG("back of debug_write...\n");
+				#endif
 
 			}
 			
@@ -3492,6 +3547,11 @@ int mp4_media_get_data(void* context, file_handle_t* mp4, file_source_t* source,
 				}
 				HLS_FREE(AVCDecInfo);
 
+			#if 1
+				DEBUG_LOG("into debug_write...write pos\n");
+				DEBUG_FUNC(output_buffer, output_buffer_size);
+				DEBUG_LOG("back of debug_write...\n");
+			#endif
 
 		}
 		
@@ -3503,6 +3563,13 @@ int mp4_media_get_data(void* context, file_handle_t* mp4, file_source_t* source,
 	#endif
 
 		DEBUG_LOG("at end of for i<n_traks\n");
+	
+		#if 1
+		DEBUG_LOG("into debug_write...\n");
+		DEBUG_FUNC(output_buffer, output_buffer_size);
+		DEBUG_LOG("back of debug_write...\n");
+		#endif
+
 
 	}
 

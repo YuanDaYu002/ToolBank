@@ -23,7 +23,7 @@
 //m3u8 param
 #define TS_FILE_PREFIX      "ZWG_TEST"              //切片文件的前缀(ts文件)
 #define M3U8_FILE_NAME      "ZWG_TEST"         //生成的m3u8文件名
-#define URL_PREFIX          "/jffs0/"               //生成目录
+#define URL_PREFIX          "/ramfs/"               //生成目录
 #define MAX_NUM_SEGMENTS    50                      //最大允许存储多少个分片
 #define SEGMENT_DURATION    5                       //每个分片文件的裁剪时长  
 
@@ -37,6 +37,33 @@ static char* get_pure_filename(char* filename)
     	--pos;
     return &filename[pos + 1];
 }
+
+/*获取文件的名字，仅仅只要名字，不要路径,不要后缀*/
+char mp4_name[64] = {0};
+static char* get_pure_filename_without_postfix(char* filename)
+{
+    int len = strlen(filename);
+    int pos = len - 1;
+    while (pos >= 0 && filename[pos]!='/')
+    	--pos;
+
+	strcpy(mp4_name,pos);
+	len = strlen(mp4_name);
+	pos = len - 1;
+	 while (pos >= 0 && filename[pos]!='.')
+	 {
+	 	mp4_name[pos] = 0;
+		--pos;
+		
+	 }
+	 mp4_name[pos] = 0; //到 "."及之后都置为字符串结束符
+
+	if(0 == pos)
+		return NULL;
+	
+    return mp4_name;
+}
+
 
 /*
 获取文件纯路径 /ramfs/aaa.m3u8--->  /ramfs/
@@ -301,8 +328,15 @@ int  generate_piece(char* filename, char* out_filename, int piece)
 	
 	buf_start = (char*)data_buffer;
 	buf_end = (char*)data_buffer + data_size;
+	
 
-	DEBUG_LOG("============Buffer size(%d) start_pos = %x  end_pos = %x\n",data_size,data_buffer,(char*)data_buffer + data_size); 
+	DEBUG_LOG("============Buffer size(%d) start_pos = %x  end_pos = %x\n",data_size,buf_start,buf_end); 
+#if 1
+	char* debug_write = (char*)((char*)data_buffer + data_size - 1);
+	DEBUG_LOG("into debug_write...write pos = %x\n",debug_write);
+	*debug_write = 1;
+	DEBUG_LOG("back of debug_write...\n");
+#endif
 
 	data_size = media->get_media_data(NULL, handle, source, (media_stats_t*)stats_buffer, piece, data_buffer, data_size);
 	if (data_size <= 0)
@@ -315,7 +349,6 @@ int  generate_piece(char* filename, char* out_filename, int piece)
 
 	//----生成TS文件--------------------------------------------------------------------------------
 	DEBUG_LOG("into position K\n");
-	exit(1);
 	
 	muxed_size = mux_to_ts((media_stats_t*)stats_buffer, data_buffer, NULL, 0);
 	if ( muxed_size <= 0 )
@@ -386,7 +419,11 @@ int  generate_piece(char* filename, char* out_filename, int piece)
 		free(stats_buffer);
 
 	if (data_buffer)
+	{
+		DEBUG_LOG("i need free data_buffer!\n");
 		free(data_buffer);
+	}
+		
 
 	if (muxed_buffer)
 		free(muxed_buffer);
@@ -797,6 +834,7 @@ int hls_main (int argc, char* argv[])
 
 	char path[1024];
 	sprintf(path,"%s%s.m3u8",URL_PREFIX,M3U8_FILE_NAME);
+
 	int counterrr=0; //ts分片文件的个数
 
 	/*---生成m3u8文件--------------------------------------------------------------------------*/
@@ -808,8 +846,8 @@ int hls_main (int argc, char* argv[])
 	{
 		DEBUG_LOG("into position O\n"); 
 		char tmp[1024];
-		sprintf(tmp, "%s%s_%d.ts",URL_PREFIX,INPUT_MP4_FILE, i);
-
+		sprintf(tmp, "%s%s_%d.ts",get_pure_pathname(URL_PREFIX),get_pure_filename(INPUT_MP4_FILE), i);
+		
 		if(generate_piece(INPUT_MP4_FILE, tmp, i) < 0)
 		{
 			ERROR_LOG("generate_piece %s i=%d error!\n",INPUT_MP4_FILE,i);
