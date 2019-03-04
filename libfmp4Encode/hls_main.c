@@ -47,19 +47,21 @@ static char* get_pure_filename_without_postfix(char* filename)
     while (pos >= 0 && filename[pos]!='/')
     	--pos;
 
-	strcpy(mp4_name,pos);
+	strcpy(mp4_name,&filename[pos + 1]);//+1为了去掉 ‘/’
+	DEBUG_LOG("mp4_name = %s\n",mp4_name);
+	
 	len = strlen(mp4_name);
-	pos = len - 1;
-	 while (pos >= 0 && filename[pos]!='.')
-	 {
-	 	mp4_name[pos] = 0;
-		--pos;
-		
-	 }
-	 mp4_name[pos] = 0; //到 "."及之后都置为字符串结束符
+	int i = 0;
+	for(i = 0 ; i<=len ; i++)
+	{
+		if(mp4_name[i] == '.')
+		{
+			mp4_name[i] = '\0'; //从 '.'处截断
+			break;
+		}
+	}
 
-	if(0 == pos)
-		return NULL;
+	DEBUG_LOG("after cut , mp4_name = %s\n",mp4_name);
 	
     return mp4_name;
 }
@@ -163,7 +165,7 @@ int  generate_playlist_test(char* filename, char* playlist, int* numberofchunks)
 
 	//---生成m3u8文件--------------------------------------------
 	DEBUG_LOG("into position G\n");	
-	pure_filename = get_pure_filename(filename); //get only filename without any directory info
+	pure_filename = get_pure_filename_without_postfix(filename); //get only filename without any directory info
 	if (pure_filename)
 	{
 		DEBUG_LOG("into position G1\n");	
@@ -837,16 +839,18 @@ int hls_main (int argc, char* argv[])
 
 	int counterrr=0; //ts分片文件的个数
 
+
 	/*---生成m3u8文件--------------------------------------------------------------------------*/
 	if(generate_playlist_test(INPUT_MP4_FILE,path,&counterrr) < 0)
 		ERROR_LOG("generate_playlist_test failed !\n");
 	/*---生成TS切片文件------------------------------------------------------------------------*/
 	int i = 0;
+	
 	for(i = 0; i < counterrr; ++i) //循环一次生成一个TS切片文件 
 	{
 		DEBUG_LOG("into position O\n"); 
 		char tmp[1024];
-		sprintf(tmp, "%s%s_%d.ts",get_pure_pathname(URL_PREFIX),get_pure_filename(INPUT_MP4_FILE), i);
+		sprintf(tmp, "%s%s_%d.ts",get_pure_pathname(URL_PREFIX),get_pure_filename_without_postfix(INPUT_MP4_FILE), i);
 		
 		if(generate_piece(INPUT_MP4_FILE, tmp, i) < 0)
 		{

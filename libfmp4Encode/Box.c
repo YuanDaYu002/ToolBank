@@ -583,7 +583,7 @@ trun_box*	trun_box_init(unsigned int trackId)
 	
 	if(trackId == VIDEO_TRACK)//video
 	{
-		flag = E_data_offset + /*E_first_sample_flags +*/ E_sample_duration + E_sample_size /*+ E_sample_flags*/;
+		flag = E_data_offset + /*E_first_sample_flags +*/ E_sample_duration + E_sample_size + E_sample_flags ;
 	}
 	else 					 //audio
 	{

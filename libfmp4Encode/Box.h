@@ -331,7 +331,7 @@ typedef struct _trun_V_sample_t// video
 {
     unsigned int sample_duration; //样本（可理解为1帧）的持续时间
     unsigned int sample_size;
-   //unsigned int sample_flags;
+   	unsigned int sample_flags;
    // unsigned int sample_composition_time_offset; 
 }trun_V_sample_t;
 typedef struct _trun_A_sample_t //audio

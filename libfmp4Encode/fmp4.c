@@ -1171,15 +1171,17 @@ int	remuxVideo(void *video_frame,unsigned int frame_length,unsigned int frame_ra
 			
 
 
-			#if 0 //sample_flags 部分
+			#if 1 //sample_flags 部分
 			unsigned char sample_flags[4] = {(isLeading << 2)|(dependsOn),
 											 (isDependedOn << 6) | (hasRedundancy << 4) | isNonSync,
 											 0x00,0x00
 											};
 			memcpy((unsigned char*)&buf_remux_video.sample_info[buf_remux_video.write_index].trun_sample.sample_flags,sample_flags,sizeof(sample_flags));
+
 			DEBUG_LOG("buf_remux_video.sample_info[buf_remux_video.write_index].trun_sample.sample_flags(%d)\n",\
 					   buf_remux_video.sample_info[buf_remux_video.write_index].trun_sample.sample_flags);
-			buf_remux_video.sample_info[buf_remux_video.write_index].trun_sample.sample_flags = t_htonl(16842752);
+
+			//buf_remux_video.sample_info[buf_remux_video.write_index].trun_sample.sample_flags = t_htonl(16842752);
 			#endif
 			
 			// t_htonl(cts)  需要获取帧的cts,暂时不填
