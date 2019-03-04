@@ -1378,7 +1378,7 @@ int init_sample_offset_array(void* context, file_handle_t* mp4, file_source_t* s
 		
 			
 	}
-
+	sample_offset.init_done = 1;
 	/*================================================================================================*/
 	if(NULL != moof_array)
 		HLS_FREE(moof_array);
