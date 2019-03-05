@@ -3206,7 +3206,7 @@ int mp4_media_get_data(void* context, file_handle_t* mp4, file_source_t* source,
 		else 	//track_data[1]
 		{
 			//计算track_data[1]指向的起始位置，在字节对齐中为了不回踩到前边的数据，向后偏移4字节再对齐。
-			output_buffer->track_data[i] = (track_data_t*)((char*)output_buffer->track_data[i-1] + sizeof(track_data_t) + (sizeof(int) * output_buffer->track_data[i-1]->n_frames) * 2 + sizeof(char) * output_buffer->track_data[i-1]->buffer_size + 4);//*2是因为每个帧都有 size 和 offset都是四字节，两倍关系，+4 
+			output_buffer->track_data[i] = (track_data_t*)((char*)output_buffer->track_data[i-1] + sizeof(track_data_t) + (sizeof(int) * output_buffer->track_data[i-1]->n_frames) * 2 + sizeof(char) * output_buffer->track_data[i-1]->buffer_size);//*2是因为每个帧都有 size 和 offset都是四字节，两倍关系
 			output_buffer->track_data[i] = (track_data_t*)(((unsigned int)output_buffer->track_data[i] + ALIGNMENT_BYTES)&(~0x3L));  //调整地址，进行4字节对齐
 			
 			DEBUG_LOG("---i = %d output_buffer->track_data[0] = %x track_data[0]->n_frames = %d track_data[0]->buffer_size = %d\n",
