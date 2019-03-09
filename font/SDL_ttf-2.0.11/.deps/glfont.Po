@@ -1,0 +1,213 @@
+glfont.o: glfont.c \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/stdlib.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/features.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/uClibc_config.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/sys/cdefs.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/lib/gcc/arm-linux-uclibceabi/6.3.0/include/stddef.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/waitflags.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/waitstatus.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/endian.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/endian.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/byteswap.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/byteswap.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/byteswap-common.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/sys/types.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/types.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/wordsize.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/typesizes.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/pthreadtypes.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/time.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/sys/select.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/select.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/sigset.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/time.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/sys/sysmacros.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/alloca.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/stdio.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/uClibc_stdio.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/wchar.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/wchar.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/uClibc_mutex.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/pthread.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/sched.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/sched.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/uClibc_clk_tck.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/signal.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/setjmp.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/uClibc_pthread.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/lib/gcc/arm-linux-uclibceabi/6.3.0/include/stdarg.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/stdio_lim.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/string.h \
+ /usr/local/include/SDL/SDL.h /usr/local/include/SDL/SDL_main.h \
+ /usr/local/include/SDL/SDL_stdinc.h /usr/local/include/SDL/SDL_config.h \
+ /usr/local/include/SDL/SDL_platform.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/strings.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/inttypes.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/lib/gcc/arm-linux-uclibceabi/6.3.0/include/stdint.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/stdint.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/ctype.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/uClibc_touplow.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/iconv.h \
+ /usr/local/include/SDL/begin_code.h /usr/local/include/SDL/close_code.h \
+ /usr/local/include/SDL/SDL_audio.h /usr/local/include/SDL/SDL_error.h \
+ /usr/local/include/SDL/SDL_endian.h /usr/local/include/SDL/SDL_mutex.h \
+ /usr/local/include/SDL/SDL_thread.h /usr/local/include/SDL/SDL_rwops.h \
+ /usr/local/include/SDL/SDL_cdrom.h /usr/local/include/SDL/SDL_cpuinfo.h \
+ /usr/local/include/SDL/SDL_events.h /usr/local/include/SDL/SDL_active.h \
+ /usr/local/include/SDL/SDL_keyboard.h \
+ /usr/local/include/SDL/SDL_keysym.h /usr/local/include/SDL/SDL_mouse.h \
+ /usr/local/include/SDL/SDL_video.h /usr/local/include/SDL/SDL_joystick.h \
+ /usr/local/include/SDL/SDL_quit.h /usr/local/include/SDL/SDL_loadso.h \
+ /usr/local/include/SDL/SDL_timer.h /usr/local/include/SDL/SDL_version.h \
+ SDL_ttf.h /usr/local/include/SDL/begin_code.h \
+ /usr/local/include/SDL/close_code.h
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/stdlib.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/features.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/uClibc_config.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/sys/cdefs.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/lib/gcc/arm-linux-uclibceabi/6.3.0/include/stddef.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/waitflags.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/waitstatus.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/endian.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/endian.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/byteswap.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/byteswap.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/byteswap-common.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/sys/types.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/types.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/wordsize.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/typesizes.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/pthreadtypes.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/time.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/sys/select.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/select.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/sigset.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/time.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/sys/sysmacros.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/alloca.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/stdio.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/uClibc_stdio.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/wchar.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/wchar.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/uClibc_mutex.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/pthread.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/sched.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/sched.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/uClibc_clk_tck.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/signal.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/setjmp.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/uClibc_pthread.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/lib/gcc/arm-linux-uclibceabi/6.3.0/include/stdarg.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/stdio_lim.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/string.h:
+
+/usr/local/include/SDL/SDL.h:
+
+/usr/local/include/SDL/SDL_main.h:
+
+/usr/local/include/SDL/SDL_stdinc.h:
+
+/usr/local/include/SDL/SDL_config.h:
+
+/usr/local/include/SDL/SDL_platform.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/strings.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/inttypes.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/lib/gcc/arm-linux-uclibceabi/6.3.0/include/stdint.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/stdint.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/ctype.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/uClibc_touplow.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/iconv.h:
+
+/usr/local/include/SDL/begin_code.h:
+
+/usr/local/include/SDL/close_code.h:
+
+/usr/local/include/SDL/SDL_audio.h:
+
+/usr/local/include/SDL/SDL_error.h:
+
+/usr/local/include/SDL/SDL_endian.h:
+
+/usr/local/include/SDL/SDL_mutex.h:
+
+/usr/local/include/SDL/SDL_thread.h:
+
+/usr/local/include/SDL/SDL_rwops.h:
+
+/usr/local/include/SDL/SDL_cdrom.h:
+
+/usr/local/include/SDL/SDL_cpuinfo.h:
+
+/usr/local/include/SDL/SDL_events.h:
+
+/usr/local/include/SDL/SDL_active.h:
+
+/usr/local/include/SDL/SDL_keyboard.h:
+
+/usr/local/include/SDL/SDL_keysym.h:
+
+/usr/local/include/SDL/SDL_mouse.h:
+
+/usr/local/include/SDL/SDL_video.h:
+
+/usr/local/include/SDL/SDL_joystick.h:
+
+/usr/local/include/SDL/SDL_quit.h:
+
+/usr/local/include/SDL/SDL_loadso.h:
+
+/usr/local/include/SDL/SDL_timer.h:
+
+/usr/local/include/SDL/SDL_version.h:
+
+SDL_ttf.h:
+
+/usr/local/include/SDL/begin_code.h:
+
+/usr/local/include/SDL/close_code.h:

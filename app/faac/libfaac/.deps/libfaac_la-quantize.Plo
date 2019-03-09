@@ -1,0 +1,148 @@
+libfaac_la-quantize.lo: quantize.c \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/math.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/features.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/uClibc_config.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/sys/cdefs.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/huge_val.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/huge_valf.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/huge_vall.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/inf.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/nan.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/mathdef.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/mathcalls.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/stdio.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/lib/gcc/arm-linux-uclibceabi/6.3.0/include/stddef.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/types.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/wordsize.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/typesizes.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/pthreadtypes.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/endian.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/endian.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/byteswap.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/byteswap.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/byteswap-common.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/uClibc_stdio.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/wchar.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/wchar.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/uClibc_mutex.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/pthread.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/sched.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/time.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/sched.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/time.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/uClibc_clk_tck.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/signal.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/sigset.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/setjmp.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/uClibc_pthread.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/lib/gcc/arm-linux-uclibceabi/6.3.0/include/stdarg.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/stdio_lim.h \
+ quantize.h coder.h huff2.h bitstream.h frame.h ../config.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/lib/gcc/arm-linux-uclibceabi/6.3.0/include/stdint.h \
+ /opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/stdint.h \
+ ../include/faac.h ../include/faaccfg.h channels.h blockswitch.h fft.h \
+ ../include/faaccfg.h
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/math.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/features.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/uClibc_config.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/sys/cdefs.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/huge_val.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/huge_valf.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/huge_vall.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/inf.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/nan.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/mathdef.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/mathcalls.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/stdio.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/lib/gcc/arm-linux-uclibceabi/6.3.0/include/stddef.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/types.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/wordsize.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/typesizes.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/pthreadtypes.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/endian.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/endian.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/byteswap.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/byteswap.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/byteswap-common.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/uClibc_stdio.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/wchar.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/wchar.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/uClibc_mutex.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/pthread.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/sched.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/time.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/sched.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/time.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/uClibc_clk_tck.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/signal.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/sigset.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/setjmp.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/uClibc_pthread.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/lib/gcc/arm-linux-uclibceabi/6.3.0/include/stdarg.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/bits/stdio_lim.h:
+
+quantize.h:
+
+coder.h:
+
+huff2.h:
+
+bitstream.h:
+
+frame.h:
+
+../config.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/lib/gcc/arm-linux-uclibceabi/6.3.0/include/stdint.h:
+
+/opt/hisi-linux/x86-arm/arm-himix100-linux/target/usr/include/stdint.h:
+
+../include/faac.h:
+
+../include/faaccfg.h:
+
+channels.h:
+
+blockswitch.h:
+
+fft.h:
+
+../include/faaccfg.h:

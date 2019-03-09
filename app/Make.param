@@ -1,0 +1,106 @@
+export MY_PATH=$(shell pwd)/..
+export DEV_PATH=$(MY_PATH)/..
+export SDK_PATH=$(DEV_PATH)/Hi3516CV300_SDK_V1.0.2.0
+export MPP_PATH=$(SDK_PATH)/mpp
+export DRV_ROOT=$(SDK_PATH)/drv
+export MY_OUT=$(MY_PATH)/out
+export MY_LIBOUT=$(MY_OUT)/lib
+#########################################################################
+export KERNEL_NAME=liteos
+export LINUX_ROOT?=$(SDK_PATH)/osdrv/opensource/liteos/$(KERNEL_NAME)
+export LITEOSTOPDIR?=$(LINUX_ROOT)
+include $(LITEOSTOPDIR)/config.mk
+#########################################################################
+INC_FLAGS = -I$(SDK_PATH)/mpp/include -I$(SDK_PATH)/osal/include -I$(MY_PATH)/include -I$(MY_PATH)/3rdinc
+INC_FLAGS += -I$(MY_PATH)/3rdinc/faac
+INC_FLAGS += -I$(LITEOSTOPDIR)/lib/libc/kernel/uapi/liteos
+##########################################################################
+CFLAGS = $(LIBS_CFLAGS)
+CFLAGS += $(LITEOS_COPTS) -D__LITEOS__
+CFLAGS += $(LITEOS_OSDRV_INCLUDE) $(LITEOS_USR_INCLUDE)
+CPPFLAGS += $(LITEOS_CXXOPTS) -D__LITEOS__
+CPPFLAGS += $(LITEOS_OSDRV_INCLUDE) $(LITEOS_USR_INCLUDE) $(LITEOS_CXXINCLUDE)
+#########################################################################
+#CHIP_ID ?= CHIP_HI3516C_V300
+CHIP_ID ?= CHIP_HI3516E_V100
+
+#SENSOR_TYPE ?= APTINA_AR0237_LVDS_1080P_30FPS
+#SENSOR_TYPE ?= SONY_IMX323_CMOS_1080P_30FPS
+#SENSOR_TYPE ?= SONY_IMX290_MIPI_1080P_30FPS
+#SENSOR_TYPE ?= SONY_IMX307_MIPI_1080P_30FPS
+#SENSOR_TYPE ?= JX_F22_MIPI_1080P_30FPS
+SENSOR_TYPE ?= SMARTSENS_SC2235_CMOS_1080P_30FPS
+#SENSOR_TYPE ?= OMNIVISION_OV2718_MIPI_1080P_30FPS
+#SENSOR_TYPE ?= OMNIVISION_OV2718_2A_MIPI_1080P_30FPS
+#SENSOR_TYPE ?= SONY_IMX385_MIPI_1080P_30FPS
+
+ifeq ($(SENSOR_TYPE), APTINA_AR0237_LVDS_1080P_30FPS)
+    SENSOR_LIBS = -lsns_ar0237
+endif
+
+ifeq ($(SENSOR_TYPE), SONY_IMX323_CMOS_1080P_30FPS)
+    SENSOR_LIBS = -lsns_imx323
+endif
+
+ifeq ($(SENSOR_TYPE), SONY_IMX290_MIPI_1080P_30FPS)
+    SENSOR_LIBS = -lsns_imx290
+endif
+
+ifeq ($(SENSOR_TYPE), SONY_IMX307_MIPI_1080P_30FPS)
+    SENSOR_LIBS = -lsns_imx307
+endif
+
+ifeq ($(SENSOR_TYPE), JX_F22_MIPI_1080P_30FPS)
+    SENSOR_LIBS = -lsns_jxf22
+endif
+ifeq ($(SENSOR_TYPE), SMARTSENS_SC2235_CMOS_1080P_30FPS)
+    SENSOR_LIBS = -lsns_sc2235
+endif
+
+ifeq ($(SENSOR_TYPE), OMNIVISION_OV2718_MIPI_1080P_30FPS)
+    SENSOR_LIBS = -lsns_ov2718
+endif
+
+ifeq ($(SENSOR_TYPE), OMNIVISION_OV2718_2A_MIPI_1080P_30FPS)
+    SENSOR_LIBS = -lsns_ov2718_2a
+endif
+ifeq ($(SENSOR_TYPE), SONY_IMX385_MIPI_1080P_30FPS)
+    SENSOR_LIBS = -lsns_imx385
+endif
+
+ISP_VERSION := ISP_V2
+
+LIB_OUT ?= $(LITEOSTOPDIR)/out/hi3516cv300/lib/
+REL_DIR=$(SDK_PATH)/mpp
+export REL_LIB := $(REL_DIR)/lib
+SDK_LIB_PATH := -L$(REL_LIB) -L$(REL_LIB)/extdrv
+
+SDK_LIB := -lacodec -ldnvqe -lhi3516cv300_adec -lhi3516cv300_aenc -lhi3516cv300_ai \
+-lhi3516cv300_aio -lhi3516cv300_ao -lhi3516cv300_base -lhi3516cv300_chnl -lhi3516cv300_h264e \
+-lhi3516cv300_h265e -lhi3516cv300_ir -lhi3516cv300_isp -lhi3516cv300_ive -lhi3516cv300_jpege \
+-lhi3516cv300_pwm -lhi3516cv300_rc -lhi3516cv300_region -lhi3516cv300_rtc -lhi3516cv300_sensor \
+-lhi3516cv300_sys -lhi3516cv300_vedu -lhi3516cv300_venc -lhi3516cv300_vgs -lhi3516cv300_viu \
+-lhi3516cv300_vou -lhi3516cv300_vpss -lhi3516cv300_wdt -l_hiae -l_hiaf -l_hiawb -lhi_cipher \
+-l_hidefog -l_hiirauto -lhi_mipi -lhi_osal -lisp -live -lmd -lmpi -lupvqe -lvirtualhifb -lVoiceEngine \
+-lhi_piris -ltools   
+SDK_LIB += -lcurl -lc -lfmp4Encoder -lfaac
+SDK_LIB += $(SENSOR_LIBS)
+
+
+LIBDEP = $(LITEOS_LIBS)
+CFLAGS += $(SCFLAGS) -DSENSOR_TYPE=$(SENSOR_TYPE) -D$(ISP_VERSION)
+LDFLAGS = $(LITEOS_LDFLAGS) $(SDK_LIB_PATH) -L$(MY_PATH)/3rdlibs -L$(MY_LIBOUT) 
+LDFLAGS += -L$(LINUX_ROOT)/lib/libc
+LDFLAGS += $(FFMPEG_LIBS_PATH)
+
+
+
+ifeq ($(CHIP_ID), CHIP_HI3516C_V300)
+	CFLAGS += -Dhi3516cv300
+endif
+ifeq ($(CHIP_ID), CHIP_HI3516E_V100)
+	CFLAGS += -Dhi3516ev100
+endif
+
+
+
