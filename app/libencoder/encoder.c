@@ -1134,17 +1134,28 @@ void *enc_get_stream_proc(void *arg)
 
 #endif
 
+
+/*一个字符所占的像素点的 （宽度）*/
 #define CHAR_PIXEL_WIDTH        8
+/*一个字符所占的像素点的 （高度）*/
 #define CHAR_PIXEL_HEIGHT       16
 
+/*time OSD 字符串的长度 (20 个字符,包括"\0")*/
 #define TIME_OSD_STR_LEN        20
+/*time OSD 像素点的（宽度）像素点数(8*19=152 pixel)*/
 #define TIME_OSD_PIXEL_WIDTH    (CHAR_PIXEL_WIDTH*(TIME_OSD_STR_LEN-1))
+/*time OSD 像素点的（高度）像素点数(16 pixel)*/
 #define TIME_OSD_PIXEL_HEIGHT   CHAR_PIXEL_HEIGHT
+/*time OSD 所占像素点的（总数）*/
 #define TIME_OSD_PIXEL_LEN      (TIME_OSD_PIXEL_WIDTH*TIME_OSD_PIXEL_HEIGHT)
 
+/*rate OSD 字符串长度(16 个字符,包括"\0")*/
 #define RATE_OSD_STR_LEN       16
+/*rate OSD 字符串（宽度）像素点数*/
 #define RATE_OSD_PIXEL_WIDTH   (CHAR_PIXEL_WIDTH*(RATE_OSD_STR_LEN-1))
+/*rate OSD 字符串（高度）像素点数*/
 #define RATE_OSD_PIXEL_HEIGHT  CHAR_PIXEL_HEIGHT
+/*rate OSD 所占像素点的（总数）*/
 #define RATE_OSD_PIXEL_LEN     (RATE_OSD_PIXEL_WIDTH*RATE_OSD_PIXEL_HEIGHT)
 
 static pthread_mutex_t osd_lock[VI_PORT_NUM];
@@ -1153,8 +1164,9 @@ static OSD_BITMAP_ATTR osd_attrs[VI_PORT_NUM][VI_OSD_NUM] = {
         {0}
     }
 };
-static HLE_U8 time_osd_matrix[TIME_OSD_PIXEL_LEN / 8];
-static HLE_U8 frame_osd_matrix[RATE_OSD_PIXEL_LEN / 8];
+/*本系统使用的BMP位图中：一个bit位代表一个像素点，8个像素点算一个字节*/
+static HLE_U8 time_osd_matrix[TIME_OSD_PIXEL_LEN / 8]; //缓存time OSD 的 BMP 像素点数据
+static HLE_U8 frame_osd_matrix[RATE_OSD_PIXEL_LEN / 8];//缓存rate OSD 的 BMP 像素点数据
 
 static pthread_mutex_t roi_lock[VI_PORT_NUM];
 static ENC_ROI_ATTR roi_attrs[VI_PORT_NUM][ROI_REGION_NUM];
@@ -1473,14 +1485,21 @@ static int need_reverse_osd(OSD_BITMAP_ATTR *osd_attr, VIDEO_FRAME_INFO_S* vfi, 
 
 #define RGB24_TO_RGB15(c) (HLE_U16)((((((c)>>16)&0xFF)>>3)<<10) | (((((c)>>8)&0xff)>>3)<<5) | (((c)&0XFF)>>3))
 
-/*点阵转BMP位图*/
+/*
+将点阵（1个像素 1 bit，单色）数据，映射成BMP位图（1个像素 1 byte，彩色）数据
+参数：
+	@osd_attr : （入）OSD参数信息（包含点阵数据）
+	@bitmap ： （返）BMP位图数据
+*/
 static void draw_bmp(OSD_BITMAP_ATTR *osd_attr, HLE_U16 *bitmap)
 {
     HLE_U32 i, j;
+	
+	//OSD BMP数据的总字节数
     int matrix_len = (osd_attr->width / 8) * osd_attr->height;
-
+	//OSD 数据
     HLE_U8 *matrix = osd_attr->raster;
-    HLE_U16 fg_color = RGB24_TO_RGB15(osd_attr->fg_color) | 0x8000;
+    HLE_U16 fg_color = RGB24_TO_RGB15(osd_attr->fg_color) | 0x8000;//第15位置1（RGB15，0 ~ 14，第15位空余）
     HLE_U16 bg_color = RGB24_TO_RGB15(osd_attr->bg_color);
 #if 0
     HLE_U16 rv_color = (~RGB24_TO_RGB15(osd_attr->fg_color)) | 0x8000;
@@ -1494,14 +1513,18 @@ static void draw_bmp(OSD_BITMAP_ATTR *osd_attr, HLE_U16 *bitmap)
         //stat_luma(pY, &vfi);
     }
 #endif
-    for (i = 0; i < matrix_len; i++) {
+	/*将点阵（1个像素 1 bit）数据，映射成BMP位图（1个像素 1 byte）数据*/
+    for (i = 0; i < matrix_len; i++) 
+	{
         //HLE_U16 clr = need_reverse_osd(osd_attr, &vfi, i, pY) ? rv_color : fg_color;
-        for (j = 0; j < 8; j++) {
-            if (*matrix & (0x01 << (7 - j))) {
-                *(bitmap++) = fg_color;
+        for (j = 0; j < 8; j++) //一次处理1字节
+		{
+            if (*matrix & (0x01 << (7 - j))) //从7 ~ 0位依次判断是否为1
+			{
+                *(bitmap++) = fg_color;	//为 1 则BMP数据对应该字节使用前景色
             }
             else {
-                *(bitmap++) = bg_color;
+                *(bitmap++) = bg_color; //为 0 则BMP数据对应该字节使用背景色
             }
         }
 
@@ -1655,8 +1678,11 @@ static int change_osd_position(int encChn, RGN_HANDLE osd_handle, int enc_w,
 }
 
 
-//配置单个OSD区域，enc_w和enc_h为所在编码通道编码图像的宽高
-
+/*
+功能：
+	配置单个OSD区域，enc_w和enc_h为所在编码通道编码图像的宽高
+参数：
+*/
 static int config_single_osd(int encChn, int osd_index, int enc_w, int enc_h,
                              OSD_BITMAP_ATTR *osd_attr, HLE_SURFACE *org_sfc)
 {
@@ -1668,18 +1694,21 @@ static int config_single_osd(int encChn, int osd_index, int enc_w, int enc_h,
     int osd_w;
     int osd_h;
     int stream_idx = ENC_GET_STREAN_INDEX(encChn);
-    if (stream_idx >= 2) {
-        osd_w = osd_attr->width & (~1);
+    if (stream_idx >= 2) 
+	{
+        osd_w = osd_attr->width & (~1); //(~1)为进行二字节对齐(海思SDK接口要求)。
         osd_h = osd_attr->height & (~1);
     }
-    else {
+    else 
+	{
         //汉字字库大小为16X16，适合作为480X270的OSD，其他大小需要缩放
         //根据编码图像高宽计算出OSD高宽
         osd_w = (osd_attr->width * enc_w / 480) & (~1);
         osd_h = (osd_attr->height * enc_h / 270) & (~1);
     }
 
-    if (HI_MPI_RGN_GetAttr(osd_handle, &rgn_attr) != HI_SUCCESS) {
+    if (HI_MPI_RGN_GetAttr(osd_handle, &rgn_attr) != HI_SUCCESS) 
+	{
         //获取属性失败则创建
         if (create_osd_region(osd_handle, osd_w, osd_h) != HLE_RET_OK)
             return HLE_RET_ERROR;
@@ -1789,18 +1818,22 @@ static void* time_osd_proc(void *arg)
 
     char *org_bmp;
     HLE_SURFACE org_sfc;
-
+	
+	/*初始化 surface 的宽高，BMP数据缓存空间*/
     org_sfc.u32Width = TIME_OSD_PIXEL_WIDTH;
     org_sfc.u32Height = TIME_OSD_PIXEL_HEIGHT;
     org_bmp = create_surface(&org_sfc);
-    if (org_bmp == NULL) {
+    if (org_bmp == NULL) 
+	{
         ERROR_LOG("create_surface org_bmp failed!\n");
         return NULL;
     }
+	
     sleep(2);
     time_t time_cur = 0;
     time_t time_old = 0;
-    while (enc_ctx.running) {
+    while (enc_ctx.running) 
+	{
         time(&time_cur); /*取得当前时间,判断是否需要更新TIME_OSD*/
         if (time_cur == time_old)
             goto continue_sleep;
@@ -1818,17 +1851,20 @@ static void* time_osd_proc(void *arg)
         str2matrix(time_str, time_osd_matrix);
 
         int i, j;
-        for (i = 0; i < VI_PORT_NUM; i++) {
+        for (i = 0; i < VI_PORT_NUM; i++) 
+		{
             pthread_mutex_lock(osd_lock + i);
             OSD_BITMAP_ATTR *osd_attr = &osd_attrs[i][TIME_OSD_INDEX];
-            if (osd_attr->enable == 0) {
+            if (osd_attr->enable == 0) 
+			{
                 pthread_mutex_unlock(osd_lock + i);
                 continue;
             }
 
             osd_attr->raster = time_osd_matrix;
             draw_bmp(osd_attr, (HLE_U16 *) org_bmp);
-            for (j = 0; j < STREAMS_PER_CHN; j++) {
+            for (j = 0; j < STREAMS_PER_CHN; j++) 
+			{
                 int enc_w, enc_h;
                 int encChn = GET_ENC_CHN(i, j);
                 if (get_encoder_size(encChn, &enc_w, &enc_h) != HLE_RET_OK)

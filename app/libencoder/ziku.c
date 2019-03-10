@@ -26,6 +26,7 @@ GBK的编码范围
 #define ZK_USE_GBK4
 #define ZK_USE_GBK5
 
+/*点阵字库描述头结构*/
 struct ZK_HEAD
 {
 #define ZK_MAGIC  0x544E4F46
@@ -39,12 +40,13 @@ struct ZK_HEAD
     HLE_U8 pad[2];
 };
 
+/*字库描述结构*/
 struct ZK
 {
     struct ZK_HEAD head;
-    int bpl; /*bytes per line*/
-    int size; /*size of the buf*/
-    char *buf; /*buf to hold the zk lattice*/
+    int bpl; 	/*bytes per line*/
+    int size; 	/*size of the buf*/
+    char *buf; 	/*buf to hold the zk lattice，字库点阵数据的缓存起始位置*/
     char *file; /*zk file name*/
 };
 
@@ -61,8 +63,9 @@ static struct ZK zks[] = {
     },
 };
 
-
+/*字库的（区）区间*/
 #define ZK_QU_COUNT(pzk) (pzk->head.q_end - pzk->head.q_start + 1)
+/*字库的（位）区间*/
 #define ZK_WEI_COUNT(pzk)   (pzk->head.w_end - pzk->head.w_start + 1)
 
 #define ARRAY_COUNT(array)     (sizeof(array)/sizeof(array[0]))
@@ -89,7 +92,7 @@ static int load_zk(struct ZK *zk)
         ERROR_LOG("read head failed!\n");
         goto closefile;
     }
-    zk->bpl = (zk->head.width + 7) / 8;
+    zk->bpl = (zk->head.width + 7) / 8;//向上 8 bit对齐
     zk->size = zk->bpl * zk->head.height * ZK_QU_COUNT(zk) * ZK_WEI_COUNT(zk);
     DEBUG_LOG("width=%d, height=%d, zk size %d\n", zk->head.width, zk->head.height, zk->size);
 
@@ -162,20 +165,30 @@ int zk_init()
  * */
 int zk_get_lattice(const HLE_U8 *str, GLYPH_LATTICE *lattice)
 {
-    if (*str >= zks[0].head.q_start && *str <= zks[0].head.q_end) {
+	/*如果字符属于ASCII码表的范围*/
+    if (*str >= zks[0].head.q_start && *str <= zks[0].head.q_end) 
+	{
         lattice->width = zks[0].head.width;
         lattice->height = zks[0].head.height;
         lattice->bpl = zks[0].bpl;
-        lattice->bits = zks[0].buf + (*str - zks[0].head.q_start)
-                * zks[0].bpl * zks[0].head.height;
+		
+		/*
+		计算目标字型（点阵数据）的所在位置：
+		*/
+        lattice->bits = zks[0].buf +
+        		(*str - zks[0].head.q_start)/*字库起始字形往后偏移多少个字形才是目标字形的位置*/
+                * zks[0].bpl * zks[0].head.height/*每个字形的字节数*/;
 
         return 1;
     }
-
+	
+	/*字符不属于ASCII码表范围的情况（查找其他字库）*/
     int i;
-    for (i = 1; i < ARRAY_COUNT(zks); i++) {
+    for (i = 1; i < ARRAY_COUNT(zks); i++) 
+	{
         if ((*str >= zks[i].head.q_start && *str <= zks[i].head.q_end)
-            && (*(str + 1) >= zks[i].head.w_start && *(str + 1) <= zks[i].head.w_end)) {
+            && (*(str + 1) >= zks[i].head.w_start && *(str + 1) <= zks[i].head.w_end)) 
+        {
             struct ZK *pzk = zks + i;
             lattice->width = pzk->head.width;
             lattice->height = pzk->head.height;
@@ -196,43 +209,58 @@ int zk_get_lattice(const HLE_U8 *str, GLYPH_LATTICE *lattice)
     return 1;
 }
 
-/* 得到点阵的width */
+/* 计算字符串的（宽度）像素点个数（bit位数） */
 int get_matrix_width(const HLE_U8 *str)
 {
     int str_len = 0;
 
-    while (*str != '\0') {
+    while (*str != '\0') 
+	{
         GLYPH_LATTICE ltc;
         str += zk_get_lattice(str, &ltc);
         str_len += ltc.bpl;
     }
-    return (str_len * 8);
+    return (str_len * 8); //返回的是字符串的（宽度）像素点个数（bit位数）
 }
 
-/* 将字符串信息转换成点阵 */
+/* 
+功能：
+	将字符串信息转换成BMP点阵数据 
+参数：
+	@str：（入）要转换的字符串
+	@matrix_data：（返）转换后的BMP点阵数据
+*/
 void str2matrix(const HLE_U8 *str, HLE_U8 *matrix_data)
 {
-    int matrix_width = get_matrix_width(str);
-    int matrix_bytes = matrix_width / 8;
+    int matrix_width = get_matrix_width(str);//字符串BMP数据（宽度）像素点个数（bit位数）
+    int matrix_bytes = matrix_width / 8;	 //字符串BMP数据（宽度）字节数
     HLE_U8 *tmp_data = matrix_data;
 
     int i = 0;
-    while (*str != '\0') {
+    while (*str != '\0') 
+	{
         GLYPH_LATTICE ltc;
-        str += zk_get_lattice(str, &ltc);
+        str += zk_get_lattice(str, &ltc);//一次获取一个字符的BMP数据描述信息
 
-        /* 完整打印一个字符 */
+        /*
+        完整打印一个字符的BMP数据(到线性数组缓存)：
+        整个字符串的BMP数据当做一个整体存储到一维线性数组里边，假设 OSD字符串为 ABC，
+        A0、B0、C0代表各个字符点阵第0行的数据，依次类推A1、B1、C1代表第1行的数据......
+        则，线性数组存储的数据为：A0 B0 C0 A1 B1 C1 A2 B2 C2 ........ 
+        如此去理解i的作用就显而易见了
+		*/
         int j;
-        for (j = 0; j < ltc.height; j++) //每个字符逐行打印
+        for (j = 0; j < ltc.height; j++) //单个字符逐行打印
         {
             tmp_data = matrix_data + ((j * matrix_bytes) + i);
             int k;
-            for (k = 0; k < ltc.bpl; k++) {
+            for (k = 0; k < ltc.bpl; k++) //拷贝一行的字节数
+			{
                 *tmp_data++ = *ltc.bits++;
             }
         }
 
-        /* 打印下一个字符 */
+        /* i = 已经打印字符的宽度之和 */
         i += ltc.bpl;
     }
 }

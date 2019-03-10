@@ -7,12 +7,13 @@
 
 #include "typeport.h"
 
+/*（单个）字形点阵描述结构*/
 typedef struct _tag_GLYPH_LATTICE
 {
-    int width; /*width of glyph*/
-    int height; /*width of glyph*/
-    int bpl; /*bytes per line*/
-    const char *bits; /*start address of glyph lattice*/
+    int width; 	/*width of glyph*/
+    int height; /*height of glyph*/
+    int bpl; 	/*bytes per line*/
+    const char *bits; /*start address of glyph lattice，该字形点阵所在的位置*/
 } GLYPH_LATTICE;
 
 
