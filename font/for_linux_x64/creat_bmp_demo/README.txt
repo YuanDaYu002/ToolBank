@@ -1,4 +1,5 @@
-该工程用来生成BMP字库文件,目前只支持部分ASCII码字库。
+该工程用来生成BMP--->点阵字库文件,目前只支持部分ASCII码字库。
+矢量字体转换BMP图，再制作成点阵字库
 前提:
 	运行程序前需要先设置环境变量：
 	export LD_LIBRARY_PATH=$(CURRENT_PATH)/libs
