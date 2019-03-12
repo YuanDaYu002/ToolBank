@@ -1,0 +1,439 @@
+SDL_ttf.lo: SDL_ttf.c /usr/include/stdc-predef.h /usr/include/math.h \
+ /usr/include/features.h /usr/include/sys/cdefs.h \
+ /usr/include/bits/wordsize.h /usr/include/gnu/stubs.h \
+ /usr/include/gnu/stubs-64.h /usr/include/bits/huge_val.h \
+ /usr/include/bits/huge_valf.h /usr/include/bits/huge_vall.h \
+ /usr/include/bits/inf.h /usr/include/bits/nan.h \
+ /usr/include/bits/mathdef.h /usr/include/bits/mathcalls.h \
+ /usr/include/bits/mathinline.h /usr/include/stdio.h \
+ /usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/stddef.h \
+ /usr/include/bits/types.h /usr/include/bits/typesizes.h \
+ /usr/include/libio.h /usr/include/_G_config.h /usr/include/wchar.h \
+ /usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/stdarg.h \
+ /usr/include/bits/stdio_lim.h /usr/include/bits/sys_errlist.h \
+ /usr/include/bits/stdio.h /usr/include/stdlib.h \
+ /usr/include/bits/waitflags.h /usr/include/bits/waitstatus.h \
+ /usr/include/endian.h /usr/include/bits/endian.h \
+ /usr/include/bits/byteswap.h /usr/include/bits/byteswap-16.h \
+ /usr/include/sys/types.h /usr/include/time.h /usr/include/sys/select.h \
+ /usr/include/bits/select.h /usr/include/bits/sigset.h \
+ /usr/include/bits/time.h /usr/include/sys/sysmacros.h \
+ /usr/include/bits/pthreadtypes.h /usr/include/alloca.h \
+ /usr/include/bits/stdlib-float.h /usr/include/string.h \
+ /usr/include/xlocale.h /usr/include/bits/string.h \
+ /usr/include/bits/string2.h /usr/local/include/ft2build.h \
+ /usr/include/freetype2/freetype/config/ftheader.h \
+ /usr/include/freetype2/freetype/freetype.h \
+ /usr/include/freetype2/freetype/config/ftconfig.h \
+ /usr/include/freetype2/freetype/config/ftconfig-64.h \
+ /usr/include/freetype2/freetype/config/ftoption.h \
+ /usr/include/freetype2/freetype/config/ftstdlib.h \
+ /usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include-fixed/limits.h \
+ /usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include-fixed/syslimits.h \
+ /usr/include/limits.h /usr/include/bits/posix1_lim.h \
+ /usr/include/bits/local_lim.h /usr/include/linux/limits.h \
+ /usr/include/bits/posix2_lim.h /usr/include/setjmp.h \
+ /usr/include/bits/setjmp.h /usr/include/freetype2/freetype/fterrors.h \
+ /usr/include/freetype2/freetype/ftmoderr.h \
+ /usr/include/freetype2/freetype/fterrdef.h \
+ /usr/include/freetype2/freetype/fttypes.h \
+ /usr/include/freetype2/freetype/ftsystem.h \
+ /usr/include/freetype2/freetype/ftimage.h \
+ /usr/include/freetype2/freetype/ftoutln.h \
+ /usr/include/freetype2/freetype/ftstroke.h \
+ /usr/include/freetype2/freetype/ftglyph.h \
+ /usr/include/freetype2/freetype/ttnameid.h /usr/local/include/SDL2/SDL.h \
+ /usr/local/include/SDL2/SDL_main.h /usr/local/include/SDL2/SDL_stdinc.h \
+ /usr/local/include/SDL2/SDL_config.h \
+ /usr/local/include/SDL2/SDL_platform.h \
+ /usr/local/include/SDL2/begin_code.h \
+ /usr/local/include/SDL2/close_code.h /usr/include/strings.h \
+ /usr/include/bits/wchar.h /usr/include/inttypes.h \
+ /usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/stdint.h \
+ /usr/include/stdint.h /usr/include/ctype.h \
+ /usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/float.h \
+ /usr/local/include/SDL2/SDL_assert.h \
+ /usr/local/include/SDL2/SDL_atomic.h /usr/local/include/SDL2/SDL_audio.h \
+ /usr/local/include/SDL2/SDL_error.h /usr/local/include/SDL2/SDL_endian.h \
+ /usr/local/include/SDL2/SDL_mutex.h /usr/local/include/SDL2/SDL_thread.h \
+ /usr/local/include/SDL2/SDL_rwops.h \
+ /usr/local/include/SDL2/SDL_clipboard.h \
+ /usr/local/include/SDL2/SDL_cpuinfo.h \
+ /usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/immintrin.h \
+ /usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/mmintrin.h \
+ /usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/xmmintrin.h \
+ /usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/mm_malloc.h \
+ /usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/emmintrin.h \
+ /usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/pmmintrin.h \
+ /usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/tmmintrin.h \
+ /usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/smmintrin.h \
+ /usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/popcntintrin.h \
+ /usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/wmmintrin.h \
+ /usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/avxintrin.h \
+ /usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/avx2intrin.h \
+ /usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/avx512fintrin.h \
+ /usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/avx512erintrin.h \
+ /usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/avx512pfintrin.h \
+ /usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/avx512cdintrin.h \
+ /usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/avx512vlintrin.h \
+ /usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/avx512bwintrin.h \
+ /usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/avx512dqintrin.h \
+ /usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/avx512vlbwintrin.h \
+ /usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/avx512vldqintrin.h \
+ /usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/avx512ifmaintrin.h \
+ /usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/avx512ifmavlintrin.h \
+ /usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/avx512vbmiintrin.h \
+ /usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/avx512vbmivlintrin.h \
+ /usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/shaintrin.h \
+ /usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/lzcntintrin.h \
+ /usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/bmiintrin.h \
+ /usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/bmi2intrin.h \
+ /usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/fmaintrin.h \
+ /usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/f16cintrin.h \
+ /usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/rtmintrin.h \
+ /usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/xtestintrin.h \
+ /usr/local/include/SDL2/SDL_events.h /usr/local/include/SDL2/SDL_video.h \
+ /usr/local/include/SDL2/SDL_pixels.h /usr/local/include/SDL2/SDL_rect.h \
+ /usr/local/include/SDL2/SDL_surface.h \
+ /usr/local/include/SDL2/SDL_blendmode.h \
+ /usr/local/include/SDL2/SDL_keyboard.h \
+ /usr/local/include/SDL2/SDL_keycode.h \
+ /usr/local/include/SDL2/SDL_scancode.h \
+ /usr/local/include/SDL2/SDL_mouse.h \
+ /usr/local/include/SDL2/SDL_joystick.h \
+ /usr/local/include/SDL2/SDL_gamecontroller.h \
+ /usr/local/include/SDL2/SDL_quit.h /usr/local/include/SDL2/SDL_gesture.h \
+ /usr/local/include/SDL2/SDL_touch.h \
+ /usr/local/include/SDL2/SDL_filesystem.h \
+ /usr/local/include/SDL2/SDL_haptic.h /usr/local/include/SDL2/SDL_hints.h \
+ /usr/local/include/SDL2/SDL_loadso.h /usr/local/include/SDL2/SDL_log.h \
+ /usr/local/include/SDL2/SDL_messagebox.h \
+ /usr/local/include/SDL2/SDL_power.h /usr/local/include/SDL2/SDL_render.h \
+ /usr/local/include/SDL2/SDL_shape.h /usr/local/include/SDL2/SDL_system.h \
+ /usr/local/include/SDL2/SDL_timer.h \
+ /usr/local/include/SDL2/SDL_version.h \
+ /usr/local/include/SDL2/SDL_endian.h SDL_ttf.h \
+ /usr/local/include/SDL2/begin_code.h \
+ /usr/local/include/SDL2/close_code.h
+
+/usr/include/stdc-predef.h:
+
+/usr/include/math.h:
+
+/usr/include/features.h:
+
+/usr/include/sys/cdefs.h:
+
+/usr/include/bits/wordsize.h:
+
+/usr/include/gnu/stubs.h:
+
+/usr/include/gnu/stubs-64.h:
+
+/usr/include/bits/huge_val.h:
+
+/usr/include/bits/huge_valf.h:
+
+/usr/include/bits/huge_vall.h:
+
+/usr/include/bits/inf.h:
+
+/usr/include/bits/nan.h:
+
+/usr/include/bits/mathdef.h:
+
+/usr/include/bits/mathcalls.h:
+
+/usr/include/bits/mathinline.h:
+
+/usr/include/stdio.h:
+
+/usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/stddef.h:
+
+/usr/include/bits/types.h:
+
+/usr/include/bits/typesizes.h:
+
+/usr/include/libio.h:
+
+/usr/include/_G_config.h:
+
+/usr/include/wchar.h:
+
+/usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/stdarg.h:
+
+/usr/include/bits/stdio_lim.h:
+
+/usr/include/bits/sys_errlist.h:
+
+/usr/include/bits/stdio.h:
+
+/usr/include/stdlib.h:
+
+/usr/include/bits/waitflags.h:
+
+/usr/include/bits/waitstatus.h:
+
+/usr/include/endian.h:
+
+/usr/include/bits/endian.h:
+
+/usr/include/bits/byteswap.h:
+
+/usr/include/bits/byteswap-16.h:
+
+/usr/include/sys/types.h:
+
+/usr/include/time.h:
+
+/usr/include/sys/select.h:
+
+/usr/include/bits/select.h:
+
+/usr/include/bits/sigset.h:
+
+/usr/include/bits/time.h:
+
+/usr/include/sys/sysmacros.h:
+
+/usr/include/bits/pthreadtypes.h:
+
+/usr/include/alloca.h:
+
+/usr/include/bits/stdlib-float.h:
+
+/usr/include/string.h:
+
+/usr/include/xlocale.h:
+
+/usr/include/bits/string.h:
+
+/usr/include/bits/string2.h:
+
+/usr/local/include/ft2build.h:
+
+/usr/include/freetype2/freetype/config/ftheader.h:
+
+/usr/include/freetype2/freetype/freetype.h:
+
+/usr/include/freetype2/freetype/config/ftconfig.h:
+
+/usr/include/freetype2/freetype/config/ftconfig-64.h:
+
+/usr/include/freetype2/freetype/config/ftoption.h:
+
+/usr/include/freetype2/freetype/config/ftstdlib.h:
+
+/usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include-fixed/limits.h:
+
+/usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include-fixed/syslimits.h:
+
+/usr/include/limits.h:
+
+/usr/include/bits/posix1_lim.h:
+
+/usr/include/bits/local_lim.h:
+
+/usr/include/linux/limits.h:
+
+/usr/include/bits/posix2_lim.h:
+
+/usr/include/setjmp.h:
+
+/usr/include/bits/setjmp.h:
+
+/usr/include/freetype2/freetype/fterrors.h:
+
+/usr/include/freetype2/freetype/ftmoderr.h:
+
+/usr/include/freetype2/freetype/fterrdef.h:
+
+/usr/include/freetype2/freetype/fttypes.h:
+
+/usr/include/freetype2/freetype/ftsystem.h:
+
+/usr/include/freetype2/freetype/ftimage.h:
+
+/usr/include/freetype2/freetype/ftoutln.h:
+
+/usr/include/freetype2/freetype/ftstroke.h:
+
+/usr/include/freetype2/freetype/ftglyph.h:
+
+/usr/include/freetype2/freetype/ttnameid.h:
+
+/usr/local/include/SDL2/SDL.h:
+
+/usr/local/include/SDL2/SDL_main.h:
+
+/usr/local/include/SDL2/SDL_stdinc.h:
+
+/usr/local/include/SDL2/SDL_config.h:
+
+/usr/local/include/SDL2/SDL_platform.h:
+
+/usr/local/include/SDL2/begin_code.h:
+
+/usr/local/include/SDL2/close_code.h:
+
+/usr/include/strings.h:
+
+/usr/include/bits/wchar.h:
+
+/usr/include/inttypes.h:
+
+/usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/stdint.h:
+
+/usr/include/stdint.h:
+
+/usr/include/ctype.h:
+
+/usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/float.h:
+
+/usr/local/include/SDL2/SDL_assert.h:
+
+/usr/local/include/SDL2/SDL_atomic.h:
+
+/usr/local/include/SDL2/SDL_audio.h:
+
+/usr/local/include/SDL2/SDL_error.h:
+
+/usr/local/include/SDL2/SDL_endian.h:
+
+/usr/local/include/SDL2/SDL_mutex.h:
+
+/usr/local/include/SDL2/SDL_thread.h:
+
+/usr/local/include/SDL2/SDL_rwops.h:
+
+/usr/local/include/SDL2/SDL_clipboard.h:
+
+/usr/local/include/SDL2/SDL_cpuinfo.h:
+
+/usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/immintrin.h:
+
+/usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/mmintrin.h:
+
+/usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/xmmintrin.h:
+
+/usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/mm_malloc.h:
+
+/usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/emmintrin.h:
+
+/usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/pmmintrin.h:
+
+/usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/tmmintrin.h:
+
+/usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/smmintrin.h:
+
+/usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/popcntintrin.h:
+
+/usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/wmmintrin.h:
+
+/usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/avxintrin.h:
+
+/usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/avx2intrin.h:
+
+/usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/avx512fintrin.h:
+
+/usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/avx512erintrin.h:
+
+/usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/avx512pfintrin.h:
+
+/usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/avx512cdintrin.h:
+
+/usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/avx512vlintrin.h:
+
+/usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/avx512bwintrin.h:
+
+/usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/avx512dqintrin.h:
+
+/usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/avx512vlbwintrin.h:
+
+/usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/avx512vldqintrin.h:
+
+/usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/avx512ifmaintrin.h:
+
+/usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/avx512ifmavlintrin.h:
+
+/usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/avx512vbmiintrin.h:
+
+/usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/avx512vbmivlintrin.h:
+
+/usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/shaintrin.h:
+
+/usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/lzcntintrin.h:
+
+/usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/bmiintrin.h:
+
+/usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/bmi2intrin.h:
+
+/usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/fmaintrin.h:
+
+/usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/f16cintrin.h:
+
+/usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/rtmintrin.h:
+
+/usr/local/lib/gcc/x86_64-pc-linux-gnu/6.1.0/include/xtestintrin.h:
+
+/usr/local/include/SDL2/SDL_events.h:
+
+/usr/local/include/SDL2/SDL_video.h:
+
+/usr/local/include/SDL2/SDL_pixels.h:
+
+/usr/local/include/SDL2/SDL_rect.h:
+
+/usr/local/include/SDL2/SDL_surface.h:
+
+/usr/local/include/SDL2/SDL_blendmode.h:
+
+/usr/local/include/SDL2/SDL_keyboard.h:
+
+/usr/local/include/SDL2/SDL_keycode.h:
+
+/usr/local/include/SDL2/SDL_scancode.h:
+
+/usr/local/include/SDL2/SDL_mouse.h:
+
+/usr/local/include/SDL2/SDL_joystick.h:
+
+/usr/local/include/SDL2/SDL_gamecontroller.h:
+
+/usr/local/include/SDL2/SDL_quit.h:
+
+/usr/local/include/SDL2/SDL_gesture.h:
+
+/usr/local/include/SDL2/SDL_touch.h:
+
+/usr/local/include/SDL2/SDL_filesystem.h:
+
+/usr/local/include/SDL2/SDL_haptic.h:
+
+/usr/local/include/SDL2/SDL_hints.h:
+
+/usr/local/include/SDL2/SDL_loadso.h:
+
+/usr/local/include/SDL2/SDL_log.h:
+
+/usr/local/include/SDL2/SDL_messagebox.h:
+
+/usr/local/include/SDL2/SDL_power.h:
+
+/usr/local/include/SDL2/SDL_render.h:
+
+/usr/local/include/SDL2/SDL_shape.h:
+
+/usr/local/include/SDL2/SDL_system.h:
+
+/usr/local/include/SDL2/SDL_timer.h:
+
+/usr/local/include/SDL2/SDL_version.h:
+
+/usr/local/include/SDL2/SDL_endian.h:
+
+SDL_ttf.h:
+
+/usr/local/include/SDL2/begin_code.h:
+
+/usr/local/include/SDL2/close_code.h:
