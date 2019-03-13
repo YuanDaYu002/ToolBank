@@ -17,7 +17,7 @@ struct CHARACTER_INFO
 {
 	  HLE_U16	width;			//当前字符的宽度
       HLE_U16 	height;			//当前字符的高度
-      HLE_U32	data_size;		//当前字符实际数据的字节数 
+      HLE_U32	matrix_size;	//当前字符点阵数据的字节数（不包括该 CHARACTER_INFO） 
 };
 
 /*矢量点阵字库描述头结构*/
@@ -29,7 +29,8 @@ struct ZK_HEAD_VECTOR
     HLE_U8 		q_end;		//字库内部字符的编码区间，结束值（英文字符指ASCII码）
     HLE_U8 		w_start;
     HLE_U8 		w_end;
-    HLE_U32		ASCII_offset[256];	//专门描述ASCII字符的偏移量（距离文件头的偏移字节数），下标与ASCII码相对应（如果为0则代表不支持该ASCII码）
+	HLE_U32		data_size;	//后边数据部分的大小（所有的 CHARACTER_INFO + 点阵数据部分）
+	HLE_U32		ASCII_offset[256];	//专门描述ASCII字符的偏移量（距离文件头的偏移字节数），下标与ASCII码相对应（如果为0则代表不支持该ASCII码）
    
 };
 
@@ -44,5 +45,6 @@ struct ZK_VECTOR
 
 
 #endif
+
 
 
