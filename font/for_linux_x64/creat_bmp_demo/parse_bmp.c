@@ -243,7 +243,7 @@ int parse_bmp(const char *bmpname,char**BMP_data)
 #define ZIKU_FILE_NAME "./ASCII_vector"
 void main(int argc, const char * argv [ ])
 {
-	char*	str = "_%-/:.!#$&0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+	char*	str = " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 	unsigned int str_len = strlen(str);
 	
 
@@ -345,6 +345,7 @@ void main(int argc, const char * argv [ ])
 
 	
 }
+
 
 
 

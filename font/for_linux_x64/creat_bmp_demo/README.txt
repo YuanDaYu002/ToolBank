@@ -9,7 +9,7 @@
 	make    /*生成BMP位图生成程序 ：create_bmp 
 			位图解析+点阵字库打包程序：parse_bmp*/
 			
-2. ./create_bmp
+2. ./creat_bmp
 3. ./parse_bmp
 
 输出：

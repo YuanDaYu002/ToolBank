@@ -17,7 +17,7 @@ int main(int argc, const char *argv[])
     TTF_Font *font;  
     SDL_Surface *text, *temp;  
 	
-	char* 	str = "_%-/:.,!#$&0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+	char* 	str = " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 	int 	str_num = strlen(str);
 	char 	str_i[2] = {0};
 	printf("str_num = %d\n",str_num);
@@ -133,6 +133,8 @@ ERR:
 
     return -1;
 }
+
+
 
 
 

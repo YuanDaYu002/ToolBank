@@ -10,7 +10,7 @@ LDFLAGS=-L$(MY_PATH)/freetype-2.4.10_out/lib
 LDFLAGS+=-L$(MY_PATH)/SDL2-2.0.8_out/lib
 LDFLAGS+=-L$(MY_PATH)/SDL2_ttf-2.0.15_out/lib
 
-TARGET=create_bmp
+TARGET=creat_bmp
 TARGET1=parse_bmp
 SRC= creat_bmp_demo.c
 LIB:=  -lfreetype  -lSDL2_test  -lSDL2main  -lSDL2  -lSDL2_ttf -ldl -lm -lpthread
