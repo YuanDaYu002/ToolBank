@@ -37,7 +37,7 @@ int main(int argc, const char *argv[])
 		12适合 480*272分辨率
 	*/
 	
-    font = TTF_OpenFont("./MSYHBD.TTF", 48); 
+    font = TTF_OpenFont("./MSYHBD.TTF", 12); 
     if ( font == NULL ) 
     {  
         fprintf(stderr, "Couldn't load %d pt font from %s: %s\n", 18, "ptsize", SDL_GetError());  
