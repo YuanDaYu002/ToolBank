@@ -29,8 +29,15 @@ int main(int argc, const char *argv[])
         SDL_Quit();
     }  
 	
-	/*打开TTF字体包文件*/
-    font = TTF_OpenFont("./MSYHBD.TTF", 40); 
+	/*
+ 	打开TTF字体包文件:
+		按实际字体点阵大小来看,12号字体最接近8*16点阵
+		48适合 1920*1080分辨率
+		24适合 960*544分辨率
+		12适合 480*272分辨率
+	*/
+	
+    font = TTF_OpenFont("./MSYHBD.TTF", 48); 
     if ( font == NULL ) 
     {  
         fprintf(stderr, "Couldn't load %d pt font from %s: %s\n", 18, "ptsize", SDL_GetError());  
