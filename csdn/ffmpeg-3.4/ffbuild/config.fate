@@ -1,1 +1,0 @@
-config:x86:x86_64:generic:linux:gcc 6.1.0 (GCC):--enable-shared --prefix=/usr/local/ffmpeg --enable-libmp3lame --enable-gpl --enable-version3 --enable-nonfree --enable-pthreads --enable-postproc --enable-ffserver --enable-ffplay --enable-libx264 --enable-libxvid --disable-x86asm
