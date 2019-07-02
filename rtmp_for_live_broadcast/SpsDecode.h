@@ -2,16 +2,19 @@
 #ifndef _SPS_DECODE_H
 #define _SPS_DECODE_H
 
-UINT Ue(BYTE *pBuff, UINT nLen, UINT &nStartBit);   
+unsigned int Ue(char *pBuff, unsigned int nLen, unsigned int nStartBit);   
   
   
-int Se(BYTE *pBuff, UINT nLen, UINT &nStartBit);
+int Se(char *pBuff, unsigned int nLen, unsigned int nStartBit);
   
   
-DWORD u(UINT BitCount,BYTE * buf,UINT &nStartBit); 
+int u(unsigned int BitCount,char * buf,unsigned int nStartBit); 
   
   
-bool h264_decode_sps(BYTE * buf,unsigned int nLen,int &width,int &height);
+char h264_decode_sps(char * buf,unsigned int nLen,int width,int height);
 
 #endif
+
+
+
 

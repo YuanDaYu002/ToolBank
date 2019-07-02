@@ -1,12 +1,16 @@
 
 #include <stdio.h>  
-#include <math.h>  
+#include <math.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "SpsDecode.h"
+#include "rtmp_typeport.h"
   
-UINT Ue(BYTE *pBuff, UINT nLen, UINT &nStartBit)  
+unsigned int Ue(char *pBuff, unsigned int nLen, unsigned int nStartBit)  
 {  
     //计算0bit的个数  
-    UINT nZeroNum = 0;  
+    unsigned int nZeroNum = 0;  
     while (nStartBit < nLen * 8)  
     {  
         if (pBuff[nStartBit / 8] & (0x80 >> (nStartBit % 8))) //&:按位与，%取余  
@@ -20,8 +24,9 @@ UINT Ue(BYTE *pBuff, UINT nLen, UINT &nStartBit)
   
   
     //计算结果  
-    DWORD dwRet = 0;  
-    for (UINT i=0; i<nZeroNum; i++)  
+    int dwRet = 0;
+	unsigned int i=0;
+    for (i=0; i<nZeroNum; i++)  
     {  
         dwRet <<= 1;  
         if (pBuff[nStartBit / 8] & (0x80 >> (nStartBit % 8)))  
@@ -34,7 +39,7 @@ UINT Ue(BYTE *pBuff, UINT nLen, UINT &nStartBit)
 }  
   
   
-int Se(BYTE *pBuff, UINT nLen, UINT &nStartBit)  
+int Se(char *pBuff, unsigned int nLen, unsigned int nStartBit)  
 {  
     int UeVal=Ue(pBuff,nLen,nStartBit);  
     double k=UeVal;  
@@ -45,12 +50,13 @@ int Se(BYTE *pBuff, UINT nLen, UINT &nStartBit)
 }  
   
   
-DWORD u(UINT BitCount,BYTE * buf,UINT &nStartBit)  
+int u(unsigned int BitCount,char * buf,unsigned int nStartBit)  
 {  
-    DWORD dwRet = 0;  
-    for (UINT i=0; i<BitCount; i++)  
+    int dwRet = 0;  
+	unsigned int i=0;
+    for (i=0; i<BitCount; i++)  
     {  
-        dwRet <<= 1;  
+		dwRet = dwRet << 1;
         if (buf[nStartBit / 8] & (0x80 >> (nStartBit % 8)))  
         {  
             dwRet += 1;  
@@ -60,10 +66,16 @@ DWORD u(UINT BitCount,BYTE * buf,UINT &nStartBit)
     return dwRet;  
 }  
   
-  
-bool h264_decode_sps(BYTE * buf,unsigned int nLen,int &width,int &height)  
+/*******************************************************************************
+*@ Description    :解析 SPS NALU
+*@ Input          :
+*@ Output         :
+*@ Return         :成功：0 ； 失败：-1
+*@ attention      :
+*******************************************************************************/
+char h264_decode_sps(char * buf,unsigned int nLen,int width,int height)  
 {  
-    UINT StartBit=0;   
+    unsigned int StartBit=0;   
     int forbidden_zero_bit=u(1,buf,StartBit);  
     int nal_ref_idc=u(2,buf,StartBit);  
     int nal_unit_type=u(5,buf,StartBit);  
@@ -83,8 +95,11 @@ bool h264_decode_sps(BYTE * buf,unsigned int nLen,int &width,int &height)
             profile_idc == 122 || profile_idc == 144 )  
         {  
             int chroma_format_idc=Ue(buf,nLen,StartBit);  
-            if( chroma_format_idc == 3 )  
-                int residual_colour_transform_flag=u(1,buf,StartBit);  
+            if( chroma_format_idc == 3 )
+            {
+				   int residual_colour_transform_flag=u(1,buf,StartBit);  
+			}
+             
             int bit_depth_luma_minus8=Ue(buf,nLen,StartBit);  
             int bit_depth_chroma_minus8=Ue(buf,nLen,StartBit);  
             int qpprime_y_zero_transform_bypass_flag=u(1,buf,StartBit);  
@@ -93,15 +108,18 @@ bool h264_decode_sps(BYTE * buf,unsigned int nLen,int &width,int &height)
             int seq_scaling_list_present_flag[8];  
             if( seq_scaling_matrix_present_flag )  
             {  
-                for( int i = 0; i < 8; i++ ) {  
+            	int i = 0;
+                for(i = 0; i < 8; i++ ) {  
                     seq_scaling_list_present_flag[i]=u(1,buf,StartBit);  
                 }  
             }  
         }  
         int log2_max_frame_num_minus4=Ue(buf,nLen,StartBit);  
         int pic_order_cnt_type=Ue(buf,nLen,StartBit);  
-        if( pic_order_cnt_type == 0 )  
-            int log2_max_pic_order_cnt_lsb_minus4=Ue(buf,nLen,StartBit);  
+        if( pic_order_cnt_type == 0 )
+        {
+			 int log2_max_pic_order_cnt_lsb_minus4=Ue(buf,nLen,StartBit);
+		}  
         else if( pic_order_cnt_type == 1 )  
         {  
             int delta_pic_order_always_zero_flag=u(1,buf,StartBit);  
@@ -109,10 +127,18 @@ bool h264_decode_sps(BYTE * buf,unsigned int nLen,int &width,int &height)
             int offset_for_top_to_bottom_field=Se(buf,nLen,StartBit);  
             int num_ref_frames_in_pic_order_cnt_cycle=Ue(buf,nLen,StartBit);  
   
-            int *offset_for_ref_frame=new int[num_ref_frames_in_pic_order_cnt_cycle];  
-            for( int i = 0; i < num_ref_frames_in_pic_order_cnt_cycle; i++ )  
+			int *offset_for_ref_frame = (int*)malloc(num_ref_frames_in_pic_order_cnt_cycle);
+			if(NULL == offset_for_ref_frame)
+			{
+				RTMP_ERROR_LOG("malloc failed!\n");
+				return -1;
+			}
+
+			int i = 0;
+            for(i = 0; i < num_ref_frames_in_pic_order_cnt_cycle; i++ )  
                 offset_for_ref_frame[i]=Se(buf,nLen,StartBit);  
-            delete [] offset_for_ref_frame;  
+			
+           free(offset_for_ref_frame);  
         }  
         int num_ref_frames=Ue(buf,nLen,StartBit);  
         int gaps_in_frame_num_value_allowed_flag=u(1,buf,StartBit);  
@@ -122,9 +148,18 @@ bool h264_decode_sps(BYTE * buf,unsigned int nLen,int &width,int &height)
         width=(pic_width_in_mbs_minus1+1)*16;  
         height=(pic_height_in_map_units_minus1+1)*16;  
   
-        return true;  
+        return 0;  
     }  
     else  
-        return false;  
+        return -1;  
 } 
+
+
+
+
+
+
+
+
+
 

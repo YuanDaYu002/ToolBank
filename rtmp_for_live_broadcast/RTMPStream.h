@@ -34,44 +34,37 @@ typedef struct _RTMPMetadata
     unsigned char   Pps[1024];  
   
     // audio, must be aac type  
-    bool            bHasAudio;  
-    unsigned int    nAudioSampleRate;  
+    char            bHasAudio;  
+	char            pAudioSpecCfg;
+	char 			reserved[2];
+	unsigned int    nAudioSampleRate;  
     unsigned int    nAudioSampleSize;  
-    unsigned int    nAudioChannels;  
-    char            pAudioSpecCfg;  
+    unsigned int    nAudioChannels;    
     unsigned int    nAudioSpecCfgLen;  
   
 } RTMPMetadata,*LPRTMPMetadata;  
   
   
-class CRTMPStream  
-{  
-public:  
-    CRTMPStream(void);  
-    ~CRTMPStream(void);  
-public:  
-    // 连接到RTMP Server  
-    bool Connect(const char* url);  
-    // 断开连接  
-    void Close();  
-    // 发送MetaData  
-    bool SendMetadata(LPRTMPMetadata lpMetaData);  
-    // 发送H264数据帧  
-    bool SendH264Packet(unsigned char *data,unsigned int size,bool bIsKeyFrame,unsigned int nTimeStamp);  
-    // 发送H264文件  
-    bool SendH264File(const char *pFileName);  
-private:  
-    // 送缓存中读取一个NALU包  
-    bool ReadOneNaluFromBuf(NaluUnit &nalu);  
-    // 发送数据  
-    int SendPacket(unsigned int nPacketType,unsigned char *data,unsigned int size,unsigned int nTimestamp);  
-private:  
-    RTMP* m_pRtmp;  
-    unsigned char* m_pFileBuf;  
-    unsigned int  m_nFileBufSize;  
-    unsigned int  m_nCurPos;  
-};  
+ 
+int CRTMPStream_init(void);  
+void CRTMPStream_exit(void);  
+ 
+// 连接到RTMP Server  
+char CRTMPStream_Connect(char* url);  
+// 断开连接  
+void CRTMPStream_Close();  
+// 发送MetaData  
+char CRTMPStream_SendMetadata(LPRTMPMetadata lpMetaData);  
+// 发送H264数据帧  
+char CRTMPStream_SendH264Packet(unsigned char *data,unsigned int size,char bIsKeyFrame,unsigned int nTimeStamp);  
+// 发送H264文件  
+char CRTMPStream_SendH264File(const char *pFileName);  
 
+// 送缓存中读取一个NALU包  
+char CRTMPStream_ReadOneNaluFromBuf(NaluUnit nalu);  
+// 发送数据  
+int CRTMPStream_SendPacket(unsigned int nPacketType,unsigned char *data,unsigned int size,unsigned int nTimestamp);  
 
 #endif
+
 
