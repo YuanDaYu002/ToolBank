@@ -15,7 +15,7 @@ int main(int argc,char**argv)
 		return -1;
 	}
 	
-    if(!CRTMPStream_Connect("rtmp://live.hkstv.hk.lxdns.com/live/hks"))
+    if(!CRTMPStream_Connect("rtmp://192.168.3.1"))
     {
 		RTMP_ERROR_LOG("CRTMPStream_Connect failed!\n");
 		goto ERR;
