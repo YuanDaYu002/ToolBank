@@ -162,7 +162,6 @@ int main(int argc, char const** argv) {
     rtcpGroupsockAudio->multicastSendOnly(); // because we're a SSM source
     const unsigned estimatedSessionBandwidthAudio
       = 160; // in kbps; for RTCP b/w share
-      printf("[media server] at pos 567\n");
     audioRTCP = RTCPInstance::createNew(*env, rtcpGroupsockAudio,
 					estimatedSessionBandwidthAudio, CNAME,
 					audioSink, NULL /* we're a server */,
@@ -184,7 +183,6 @@ int main(int argc, char const** argv) {
     rtcpGroupsockVideo->multicastSendOnly(); // because we're a SSM source
     const unsigned estimatedSessionBandwidthVideo
       = 4500; // in kbps; for RTCP b/w share
-      printf("[media server] at pos 456\n");
     videoRTCP = RTCPInstance::createNew(*env, rtcpGroupsockVideo,
 					estimatedSessionBandwidthVideo, CNAME,
 					videoSink, NULL /* we're a server */,

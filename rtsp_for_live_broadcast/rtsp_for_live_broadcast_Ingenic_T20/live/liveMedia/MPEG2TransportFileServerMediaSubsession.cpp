@@ -168,10 +168,8 @@ FramedSource* MPEG2TransportFileServerMediaSubsession
   // Use the file size and the duration to estimate the stream's bitrate:
   if (fFileSize > 0 && fDuration > 0.0) {
     estBitrate = (unsigned)((int64_t)fFileSize/(125*fDuration) + 0.5); // kbps, rounded
-     printf("[media server] set estBitrate04(%d)-----\n",estBitrate);
   } else {
     estBitrate = 5000; // kbps, estimate
-     printf("[media server] set estBitrate04(%d)-----\n",estBitrate);
   }
 
 

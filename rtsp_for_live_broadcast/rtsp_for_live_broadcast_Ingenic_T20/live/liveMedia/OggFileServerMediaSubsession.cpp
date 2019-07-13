@@ -41,7 +41,7 @@ FramedSource* OggFileServerMediaSubsession
 ::createNewStreamSource(unsigned clientSessionId, unsigned& estBitrate) {
   FramedSource* baseSource = fOurDemux.newDemuxedTrack(clientSessionId, fTrack->trackNumber);
   if (baseSource == NULL) return NULL;
-   printf("[media server] set estBitrate07(%d)-----\n",estBitrate);
+  
   return fOurDemux.ourOggFile()
     ->createSourceForStreaming(baseSource, fTrack->trackNumber,
 			       estBitrate, fNumFiltersInFrontOfTrack);

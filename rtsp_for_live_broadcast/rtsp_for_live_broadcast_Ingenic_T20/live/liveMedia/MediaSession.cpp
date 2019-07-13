@@ -827,7 +827,7 @@ Boolean MediaSubsession::initiate(int useSpecialRTPoffset) {
       // Otherwise make a guess at 500 kbps.
       unsigned totSessionBandwidth
 	= fBandwidth ? fBandwidth + fBandwidth / 20 : 500;
-	  printf("[media server] at  pos 830151\n");
+	  printf("===========20190713 debug totSessionBandwidth =%d\n",totSessionBandwidth);
       fRTCPInstance = RTCPInstance::createNew(env(), fRTCPSocket,
 					      totSessionBandwidth,
 					      (unsigned char const*)

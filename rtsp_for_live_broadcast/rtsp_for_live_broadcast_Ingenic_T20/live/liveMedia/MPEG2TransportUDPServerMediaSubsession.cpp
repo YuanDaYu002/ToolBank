@@ -50,7 +50,6 @@ MPEG2TransportUDPServerMediaSubsession::
 FramedSource* MPEG2TransportUDPServerMediaSubsession
 ::createNewStreamSource(unsigned/* clientSessionId*/, unsigned& estBitrate) {
   estBitrate = 5000; // kbps, estimate
-  printf("[media server] set estBitrate05(%d)-----\n",estBitrate);
 
   if (fInputGroupsock == NULL) {
     // Create a 'groupsock' object for receiving the input stream:

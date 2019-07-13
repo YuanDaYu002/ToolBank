@@ -88,7 +88,6 @@ int main(int argc, char** argv) {
   unsigned char CNAME[maxCNAMElen+1];
   gethostname((char*)CNAME, maxCNAMElen);
   CNAME[maxCNAMElen] = '\0'; // just in case
-  printf("[media server] at pos 91\n");
 #ifdef IMPLEMENT_RTSP_SERVER
   RTCPInstance* rtcp =
 #endif

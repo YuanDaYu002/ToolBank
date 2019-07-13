@@ -194,7 +194,6 @@ void play() {
   unsigned char CNAME[maxCNAMElen+1];
   gethostname((char*)CNAME, maxCNAMElen);
   CNAME[maxCNAMElen] = '\0'; // just in case
-  printf("[media server] at pos 566\n");
   sessionState.rtcpInstance
     = RTCPInstance::createNew(*env, sessionState.rtcpGroupsock,
 			      estimatedSessionBandwidth, CNAME,

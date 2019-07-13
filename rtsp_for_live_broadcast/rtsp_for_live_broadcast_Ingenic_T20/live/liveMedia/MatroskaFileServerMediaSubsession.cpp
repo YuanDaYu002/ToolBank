@@ -52,7 +52,7 @@ FramedSource* MatroskaFileServerMediaSubsession
 ::createNewStreamSource(unsigned clientSessionId, unsigned& estBitrate) {
   FramedSource* baseSource = fOurDemux.newDemuxedTrack(clientSessionId, fTrack->trackNumber);
   if (baseSource == NULL) return NULL;
-   printf("[media server] set estBitrate 02 (%d)-----\n",estBitrate);
+  
   return fOurDemux.ourMatroskaFile()
     ->createSourceForStreaming(baseSource, fTrack->trackNumber,
 			       estBitrate, fNumFiltersInFrontOfTrack);

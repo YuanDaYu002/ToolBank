@@ -93,7 +93,7 @@ int main(int argc, char** argv) {
   unsigned char CNAME[maxCNAMElen+1];
   gethostname((char*)CNAME, maxCNAMElen);
   CNAME[maxCNAMElen] = '\0'; // just in case
-  printf("[media server] at pos 99\n");
+  printf("===========20190713 259 debug totSessionBandwidth =%d\n",estimatedSessionBandwidth);
 #ifdef IMPLEMENT_RTSP_SERVER
   RTCPInstance* rtcp =
 #endif

@@ -54,10 +54,8 @@ FramedSource* DVVideoFileServerMediaSubsession
   if (framer->getFrameParameters(frameSize, frameDuration)) {
     fFileDuration = (float)(((int64_t)fFileSize*frameDuration)/(frameSize*1000000.0));
     estBitrate = (unsigned)((8000.0*frameSize)/frameDuration); // in kbps
-    printf("[media server] set estBitrate(%d)-----\n",estBitrate);
   } else {
     estBitrate = 50000; // kbps, estimate
-     printf("[media server] set estBitrate(%d)-----\n",estBitrate);
   }
 
   return framer;

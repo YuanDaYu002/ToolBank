@@ -106,7 +106,6 @@ char const* MPEG4VideoFileServerMediaSubsession::getAuxSDPLine(RTPSink* rtpSink,
 FramedSource* MPEG4VideoFileServerMediaSubsession
 ::createNewStreamSource(unsigned /*clientSessionId*/, unsigned& estBitrate) {
   estBitrate = 500; // kbps, estimate
-  printf("[media server] set estBitrate06(%d)-----\n",estBitrate);
 
   // Create the video source:
   ByteStreamFileSource* fileSource

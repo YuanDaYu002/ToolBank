@@ -113,7 +113,6 @@ void onOggFileCreation(OggFile* newFile, void* clientData) {
         if (trackState[i].sink->estimatedBitrate() > 0) {
           estBitrate = trackState[i].sink->estimatedBitrate(); // hack
         }
-		printf("[media server] at pos 255\n");
 	trackState[i].rtcp
 	  = RTCPInstance::createNew(*env, rtcpGroupsock, estBitrate, CNAME,
 				    trackState[i].sink, NULL /* we're a server */,

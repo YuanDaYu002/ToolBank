@@ -34,7 +34,7 @@ all: $(ALL)
 .$(C).$(OBJ):
 	$(C_COMPILER) -c $(C_FLAGS) $<
 .$(CPP).$(OBJ):
-	$(CPLUSPLUS_COMPILER) -c $(CPLUSPLUS_FLAGS) $<
+	$(CPLUSPLUS_COMPILER) -c $(CPLUSPLUS_FLAGS) $< -DDEBUG
 
 MEDIA_SERVER_OBJS = live555MediaServer.$(OBJ) DynamicRTSPServer.$(OBJ) WW_H264VideoServerMediaSubsession.$(OBJ) WW_H264VideoSource.$(OBJ)
 

@@ -98,7 +98,6 @@ int main(int argc, char** argv) {
   unsigned char CNAME[maxCNAMElen+1];
   gethostname((char*)CNAME, maxCNAMElen);
   CNAME[maxCNAMElen] = '\0'; // just in case
-  printf("[media server] at pos 104\n");
 #ifdef IMPLEMENT_RTSP_SERVER
   RTCPInstance* audioRTCP =
 #endif
@@ -112,7 +111,6 @@ int main(int argc, char** argv) {
 
   // Create (and start) a 'RTCP instance' for this RTP sink:
   const unsigned estimatedSessionBandwidthVideo = 4500; // in kbps; for RTCP b/w share
-	printf("[media server] at pos 118\n");
 #ifdef IMPLEMENT_RTSP_SERVER
   RTCPInstance* videoRTCP =
 #endif

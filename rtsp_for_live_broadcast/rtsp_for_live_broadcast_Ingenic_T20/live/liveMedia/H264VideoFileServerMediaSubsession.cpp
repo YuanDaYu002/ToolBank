@@ -102,7 +102,7 @@ char const* H264VideoFileServerMediaSubsession::getAuxSDPLine(RTPSink* rtpSink, 
 
 FramedSource* H264VideoFileServerMediaSubsession::createNewStreamSource(unsigned /*clientSessionId*/, unsigned& estBitrate) {
   estBitrate = 500; // kbps, estimate
-  printf("[media server] set estBitrate(%d)-----\n",estBitrate);
+
   // Create the video source:
   ByteStreamFileSource* fileSource = ByteStreamFileSource::createNew(envir(), fFileName);
   if (fileSource == NULL) return NULL;

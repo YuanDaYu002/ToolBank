@@ -60,16 +60,16 @@ int main(int argc, char** argv) {
   rtcpGroupsock.multicastSendOnly(); // we're a SSM source
 
   // Create a 'H264 Video RTP' sink from the RTP 'groupsock':
-  OutPacketBuffer::maxSize = 600000;//100000;
+  OutPacketBuffer::maxSize = 100000;
   videoSink = H264VideoRTPSink::createNew(*env, &rtpGroupsock, 96);
 
   // Create (and start) a 'RTCP instance' for this RTP sink:
-  const unsigned estimatedSessionBandwidth = 2048; // in kbps; for RTCP b/w share
+  const unsigned estimatedSessionBandwidth = 500; // in kbps; for RTCP b/w share
   const unsigned maxCNAMElen = 100;
   unsigned char CNAME[maxCNAMElen+1];
   gethostname((char*)CNAME, maxCNAMElen);
   CNAME[maxCNAMElen] = '\0'; // just in case
-  printf("[media server] at pos 72\n");
+  printf("===========20190713 228 debug totSessionBandwidth =%d\n",estimatedSessionBandwidth);
   RTCPInstance* rtcp
   = RTCPInstance::createNew(*env, &rtcpGroupsock,
 			    estimatedSessionBandwidth, CNAME,
@@ -131,4 +131,3 @@ void play() {
   *env << "Beginning to read from file...\n";
   videoSink->startPlaying(*videoSource, afterPlaying, videoSink);
 }
-
