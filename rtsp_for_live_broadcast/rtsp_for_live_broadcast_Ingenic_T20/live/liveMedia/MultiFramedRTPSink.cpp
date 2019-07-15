@@ -400,6 +400,8 @@ void MultiFramedRTPSink::sendPacketIfNecessary() {
     // We're done:
     onSourceClosure();
   } else {
+
+  	#if 0
     // We have more frames left to send.  Figure out when the next frame
     // is due to start playing, then make sure that we wait this long before
     // sending the next packet.
@@ -413,6 +415,10 @@ void MultiFramedRTPSink::sendPacketIfNecessary() {
 
     // Delay this amount of time:
     nextTask() = envir().taskScheduler().scheduleDelayedTask(uSecondsToGo, (TaskFunc*)sendNext, this);
+	#else
+       sendNext(this);
+ 	#endif
+ 
   }
 }
 

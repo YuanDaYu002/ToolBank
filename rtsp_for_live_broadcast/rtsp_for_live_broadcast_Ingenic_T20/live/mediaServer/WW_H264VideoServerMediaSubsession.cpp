@@ -22,7 +22,7 @@ WW_H264VideoServerMediaSubsession * WW_H264VideoServerMediaSubsession::createNew
 
 FramedSource * WW_H264VideoServerMediaSubsession::createNewStreamSource(unsigned clientSessionId, unsigned & estBitrate)
 {
-	estBitrate = 2048; 
+	estBitrate = 2000; 
 	printf("[media server] set streamBitrate016(%d)-----\n",estBitrate);
 	return H264VideoStreamFramer::createNew(envir(), new WW_H264VideoSource(envir()));
 }

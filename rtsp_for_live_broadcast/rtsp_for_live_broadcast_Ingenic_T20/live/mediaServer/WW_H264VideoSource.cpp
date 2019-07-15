@@ -83,7 +83,7 @@ shm_buf(NULL)
 
 WW_H264VideoSource::~WW_H264VideoSource(void)
 {
-	
+	#if 0
 	sem_unlink(SEM_MUTEX_R);
 	sem_unlink(SEM_MUTEX_W);
 
@@ -94,16 +94,18 @@ WW_H264VideoSource::~WW_H264VideoSource(void)
 		m_pFrameBuffer = NULL;
 	}
 	shmctl(shmid, IPC_RMID, NULL);//对共享内存的控制或者处理；IPC_RMID:删除对象,删除创建的共享内存
+
+	#endif
 	
 	envir().taskScheduler().unscheduleDelayedTask(m_pToken);
 
-	printf("[MEDIA SERVER] rtsp connection closed\n");
+	printf("[MEDIA SERVER] rtsp connection closed  ####### ~WW_H264VideoSource #####!!!!!\n");
 }
 
 void WW_H264VideoSource::doGetNextFrame()
 {
 	// 根据 fps，计算等待时间
-	double delay = 1000.0 / FRAME_PER_SEC;  // ms
+	double delay = 1000.0 / (FRAME_PER_SEC*2);  // ms
 	int to_delay = delay * 1000;  // us
 
 	m_pToken = envir().taskScheduler().scheduleDelayedTask(to_delay, getNextFrame, this);
@@ -125,13 +127,13 @@ void WW_H264VideoSource::GetFrameData()
 
     fFrameSize = 0;
 
-	printf("[MEDIA SERVER]*********sem_post(semw)**************\n");
+	//printf("[MEDIA SERVER]*********sem_post(semw)**************\n");
 	sem_post(semw); //打开“写”开关 
 	
 	sem_wait(semr); //等待“可读”
 	printf("[MEDIA SERVER]******** GetFrameData can read !********\n");
 	memcpy(&fFrameSize,m_pFrameBuffer,4);  //读取数据长度信息
-	printf("[recv]shm_buf[]=%d %d %d %d %d\n",m_pFrameBuffer[0],m_pFrameBuffer[1],m_pFrameBuffer[2],m_pFrameBuffer[3],m_pFrameBuffer[4]);
+	//printf("[recv]shm_buf[]=%d %d %d %d %d\n",m_pFrameBuffer[0],m_pFrameBuffer[1],m_pFrameBuffer[2],m_pFrameBuffer[3],m_pFrameBuffer[4]);
 	if(fFrameSize > 0)
 	{
 		memcpy(fTo,m_pFrameBuffer + 4,fFrameSize);
@@ -140,7 +142,7 @@ void WW_H264VideoSource::GetFrameData()
 	{
 		printf("[MEDIA SERVER] GetFrameData fFrameSize[%d] error !\n",fFrameSize);
 	}
-	printf("[media server] fTo[] = %#x %#x %#x %#x %#x\n",fTo[0],fTo[1],fTo[2],fTo[3],fTo[4]);
+	//printf("[media server] fTo[] = %#x %#x %#x %#x %#x\n",fTo[0],fTo[1],fTo[2],fTo[3],fTo[4]);
 	//sem_post(semw); 
 
 	/*---#安全判断------------------------------------------------------------*/

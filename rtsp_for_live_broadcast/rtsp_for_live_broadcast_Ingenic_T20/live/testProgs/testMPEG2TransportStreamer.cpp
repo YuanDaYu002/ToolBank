@@ -83,7 +83,7 @@ int main(int argc, char** argv) {
 			     1, True, False /*no 'M' bit*/);
 
   // Create (and start) a 'RTCP instance' for this RTP sink:
-  const unsigned estimatedSessionBandwidth = 5000; // in kbps; for RTCP b/w share
+  const unsigned estimatedSessionBandwidth = 3000; // in kbps; for RTCP b/w share
   const unsigned maxCNAMElen = 100;
   unsigned char CNAME[maxCNAMElen+1];
   gethostname((char*)CNAME, maxCNAMElen);
