@@ -179,7 +179,7 @@ void PassiveServerMediaSubsession::startStream(unsigned clientSessionId,
   // Try to use a big send buffer for RTP -  at least 0.1 second of
   // specified bandwidth and at least 50 KB
   unsigned streamBitrate = fRTCPInstance == NULL ? 50 : fRTCPInstance->totSessionBW(); // in kbps
-  printf("=================== 20190713 debug streamBitrate = %d\n",streamBitrate);
+ // printf("=================== 20190713 debug streamBitrate = %d\n",streamBitrate);
   unsigned rtpBufSize = streamBitrate * 25 / 2; // 1 kbps * 0.1 s = 12.5 bytes
   if (rtpBufSize < 50 * 1024) rtpBufSize = 50 * 1024;
   increaseSendBufferTo(envir(), fRTPSink.groupsockBeingUsed().socketNum(), rtpBufSize);

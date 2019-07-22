@@ -147,7 +147,7 @@ RTCPInstance* ProxyServerMediaSession
 ::createRTCP(Groupsock* RTCPgs, unsigned totSessionBW, /* in kbps */
 	     unsigned char const* cname, RTPSink* sink) {
   // Default implementation; may be redefined by subclasses:
-  printf("===========20190713 226 debug totSessionBandwidth =%d\n",totSessionBW);
+ // printf("===========20190713 226 debug totSessionBandwidth =%d\n",totSessionBW);
   return RTCPInstance::createNew(envir(), RTCPgs, totSessionBW, cname, sink, NULL/*we're a server*/);
 }
 

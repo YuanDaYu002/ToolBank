@@ -83,7 +83,7 @@ shm_buf(NULL)
 
 WW_H264VideoSource::~WW_H264VideoSource(void)
 {
-	#if 0
+	#if 0  //加上就会打不开视频流
 	sem_unlink(SEM_MUTEX_R);
 	sem_unlink(SEM_MUTEX_W);
 
@@ -131,7 +131,7 @@ void WW_H264VideoSource::GetFrameData()
 	sem_post(semw); //打开“写”开关 
 	
 	sem_wait(semr); //等待“可读”
-	printf("[MEDIA SERVER]******** GetFrameData can read !********\n");
+	//printf("[MEDIA SERVER]******** GetFrameData can read !********\n");
 	memcpy(&fFrameSize,m_pFrameBuffer,4);  //读取数据长度信息
 	//printf("[recv]shm_buf[]=%d %d %d %d %d\n",m_pFrameBuffer[0],m_pFrameBuffer[1],m_pFrameBuffer[2],m_pFrameBuffer[3],m_pFrameBuffer[4]);
 	if(fFrameSize > 0)

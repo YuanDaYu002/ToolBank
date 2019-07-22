@@ -103,7 +103,7 @@ int main(int argc, char** argv) {
   unsigned char CNAME[maxCNAMElen+1];
   gethostname((char*)CNAME, maxCNAMElen);
   CNAME[maxCNAMElen] = '\0'; // just in case
-   printf("===========20190713 227 debug totSessionBandwidth =%d\n",estimatedSessionBandwidth);
+   //printf("===========20190713 227 debug totSessionBandwidth =%d\n",estimatedSessionBandwidth);
   sessionState.rtcpInstance
     = RTCPInstance::createNew(*env, sessionState.rtcpGroupsock,
 			      estimatedSessionBandwidth, CNAME,

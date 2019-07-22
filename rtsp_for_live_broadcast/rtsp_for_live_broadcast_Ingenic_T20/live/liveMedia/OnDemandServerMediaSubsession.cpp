@@ -169,7 +169,7 @@ void OnDemandServerMediaSubsession
 
 	unsigned char rtpPayloadType = 96 + trackNumber()-1; // if dynamic
 	rtpSink = createNewRTPSink(rtpGroupsock, rtpPayloadType, mediaSource);
-	printf("================== 20190713 debug rtpSink(%p) rtpSink->estimatedBitrate() = %d\n",rtpSink,rtpSink->estimatedBitrate());
+	//printf("================== 20190713 debug rtpSink(%p) rtpSink->estimatedBitrate() = %d\n",rtpSink,rtpSink->estimatedBitrate());
 	if (rtpSink != NULL && rtpSink->estimatedBitrate() > 0) streamBitrate = rtpSink->estimatedBitrate();
       }
 
@@ -188,7 +188,7 @@ void OnDemandServerMediaSubsession
     }
 
     // Set up the state of the stream.  The stream will get started later:
-    printf("===================== 20190713 debug trace BUG 0001\n");
+    //printf("===================== 20190713 debug trace BUG 0001\n");
     streamToken = fLastStreamToken
       = new StreamState(*this, serverRTPPort, serverRTCPPort, rtpSink, udpSink,
 			streamBitrate, mediaSource,
@@ -404,7 +404,7 @@ RTCPInstance* OnDemandServerMediaSubsession
 ::createRTCP(Groupsock* RTCPgs, unsigned totSessionBW, /* in kbps */
 	     unsigned char const* cname, RTPSink* sink) {
   // Default implementation; may be redefined by subclasses:
-  printf("===========20190713  225 debug totSessionBandwidth =%d\n",totSessionBW);
+  //printf("===========20190713  225 debug totSessionBandwidth =%d\n",totSessionBW);
   //由此处调入----wade
   return RTCPInstance::createNew(envir(), RTCPgs, totSessionBW, cname, sink, NULL/*we're a server*/);
 }
@@ -500,7 +500,7 @@ StreamState::StreamState(OnDemandServerMediaSubsession& master,
     fRTPSink(rtpSink), fUDPSink(udpSink), fStreamDuration(master.duration()),
     fTotalBW(totalBW), fRTCPInstance(NULL) /* created later */,
     fMediaSource(mediaSource), fStartNPT(0.0), fRTPgs(rtpGS), fRTCPgs(rtcpGS) {
-    printf("=================== 20190713 debug totalBW = %d\n",totalBW);
+    //printf("=================== 20190713 debug totalBW = %d\n",totalBW);
 }
 
 StreamState::~StreamState() {
@@ -516,7 +516,7 @@ void StreamState
 
   if (fRTCPInstance == NULL && fRTPSink != NULL) {
     // Create (and start) a 'RTCP instance' for this RTP sink:
-    printf("============20190713 debug entrance is here!\n");
+    //printf("============20190713 debug entrance is here!\n");
     fRTCPInstance = fMaster.createRTCP(fRTCPgs, fTotalBW, (unsigned char*)fMaster.fCNAME, fRTPSink); 
         // Note: This starts RTCP running automatically
     fRTCPInstance->setAppHandler(fMaster.fAppHandlerTask, fMaster.fAppHandlerClientData);
