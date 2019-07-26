@@ -5,5 +5,7 @@
 	A:live555MediaServer.cpp  	modified
 	B:live555MediaServer.cpp/.h  	added
 	C:WW_H264VideoSource.cpp/.h 	added
-2.app目录下为应用层往有名管道(/tmp/H264_fifo)传输H264数据的代码
+2.app目录下为应用层往有名管道(/tmp/H264_fifo)传输H264数据的代码,已经被改进成采用共享内存+信号灯（进程间同步）
+	的方式采集实时编码帧
 3.live555最终生成的服务端程序是：live/mediaServer/live555MediaServer  ，只需要运行该文件就是启动服务端程序
+4.顶层文件夹下的app目录是设备端app客户程序的demo（获取实时帧数据的部分）
