@@ -83,6 +83,8 @@ struct SignalBlock
 };
 #endif
 
+typedef struct SignalAnalyser SignalAnalyser;
+
 struct EventInfo *ei_init2(struct EventInfo *_this, tidx timeIdx, struct FreqAmplitude *p1, struct FreqAmplitude *p2);
 struct EventInfo *ei_init(struct EventInfo *_this);
 struct RecognitionListener {

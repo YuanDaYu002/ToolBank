@@ -37,7 +37,9 @@ void Sleep(int _ms);
 #define _stricmp strcasecmp
 #define scanf_s(_sformat, _DstBuf, _SizeInBytes, ...) scanf((_sformat), (_DstBuf), __VA_ARGS__)
 #define fopen_s fopen
-#define sprintf_s(_DstBuf, _SizeInBytes, ...) sprintf((_DstBuf), __VA_ARGS__)
+//#define sprintf_s(_DstBuf, _SizeInBytes, ...) sprintf((_DstBuf), __VA_ARGS__)
+#define sprintf_s(_DstBuf, _SizeInBytes, ...) snprintf((_DstBuf),_SizeInBytes, __VA_ARGS__)
+
 #define strcpy_s(_dst, _size, _src) strcpy((_dst), (_src))
 
 #endif
